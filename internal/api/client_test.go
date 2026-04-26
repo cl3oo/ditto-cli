@@ -92,6 +92,95 @@ func TestClient_Login(t *testing.T) {
 	}
 }
 
+func TestClient_GetTrendingPosts(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data": [{"id": "1", "title": "Test Post"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	posts, err := client.GetTrendingPosts()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if len(posts) != 1 || posts[0].Title != "Test Post" {
+		t.Errorf("Unexpected posts: %+v", posts)
+	}
+}
+
+func TestClient_CreatePost(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	err := client.CreatePost("Title", "Content", "Community")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+}
+
+func TestClient_GetMe(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id": "u1", "username": "admin"}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	user, err := client.GetMe()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if user.Username != "admin" {
+		t.Errorf("Expected username admin, got %s", user.Username)
+	}
+}
+
+func TestClient_GetPost(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"id": "p1", "title": "Single Post"}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	post, err := client.GetPost("p1")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if post.ID != "p1" || post.Title != "Single Post" {
+		t.Errorf("Unexpected post: %+v", post)
+	}
+}
+
+func TestClient_GetComments(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data": [{"id": "c1", "content": "Comment 1"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	comments, err := client.GetComments("p1")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if len(comments) != 1 || comments[0].Content != "Comment 1" {
+		t.Errorf("Unexpected comments: %+v", comments)
+	}
+}
+
 func TestClient_Logging(t *testing.T) {
 	logFile := "ditto.log"
 	_ = os.Remove(logFile)
