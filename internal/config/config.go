@@ -11,6 +11,8 @@ type Config struct {
 	BaseURL string `json:"base_url"`
 }
 
+const DefaultBaseURL = "http://api.ditto.local"
+
 func GetConfigPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -32,7 +34,7 @@ func LoadConfig() (*Config, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &Config{}, nil
+			return &Config{BaseURL: DefaultBaseURL}, nil
 		}
 		return nil, err
 	}
@@ -42,7 +44,17 @@ func LoadConfig() (*Config, error) {
 	if err := json.NewDecoder(f).Decode(&cfg); err != nil {
 		return nil, err
 	}
+
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = DefaultBaseURL
+	}
+	
 	return &cfg, nil
+}
+
+func (c *Config) UpdateToken(token string) error {
+	c.Token = token
+	return c.Save()
 }
 
 func (c *Config) Save() error {

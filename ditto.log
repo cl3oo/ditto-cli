@@ -1,0 +1,28 @@
+[API] 2026/04/26 13:51:38 client.go:72: --> GET http://api.ditto.local/v1/posts/trending
+[API] 2026/04/26 13:51:46 client.go:72: --> GET http://api.ditto.local/v1/posts/trending
+[API] 2026/04/26 13:51:55 client.go:72: --> POST http://api.ditto.local/v1/auth/authorize
+[API] 2026/04/26 13:51:55 client.go:74: Body: {"password":"fdssdfsdf","username":""}
+[API] 2026/04/26 13:51:56 client.go:91: <-- 401 POST (725.081208ms)
+[API] 2026/04/26 13:51:56 client.go:91: <-- 200 GET (10.174681791s)
+[API] 2026/04/26 13:52:00 client.go:72: --> GET http://api.ditto.local/v1/posts/trending
+[API] 2026/04/26 13:52:10 client.go:91: <-- 200 GET (10.282538125s)
+[API] 2026/04/26 13:52:23 client.go:72: --> GET http://api.ditto.local/v1/posts/trending
+[API] 2026/04/26 13:52:33 client.go:91: <-- 200 GET (10.172943042s)
+[API] 2026/04/26 13:52:37 client.go:72: --> GET http://api.ditto.local/v1/posts/trending
+[API] 2026/04/26 13:52:46 client.go:72: --> GET http://api.ditto.local/v1/posts/trending
+[API] 2026/04/26 13:52:56 client.go:91: <-- 200 GET (10.207236209s)
+[API] 2026/04/26 13:54:10 client.go:72: --> GET http://api.ditto.local/v1/posts/trending
+[API] 2026/04/26 13:54:20 client.go:72: --> POST http://api.ditto.local/v1/auth/authorize
+[API] 2026/04/26 13:54:20 client.go:74: Body: {"password":"12345678","username":"admin"}
+[API] 2026/04/26 13:54:20 client.go:91: <-- 200 GET (10.230835208s)
+[API] 2026/04/26 13:54:20 client.go:91: <-- 200 POST (434.748125ms)
+[API] 2026/04/26 13:54:20 client.go:72: --> GET http://api.ditto.local/v1/posts/trending
+[API] 2026/04/26 13:54:20 client.go:91: <-- 200 GET (136.133458ms)
+[API] 2026/04/26 13:54:58 client.go:72: --> GET http://api.ditto.local/v1/posts/trending
+[API] 2026/04/26 13:55:08 client.go:91: <-- 200 GET (10.337264708s)
+[API] 2026/04/26 13:55:24 client.go:72: --> GET http://api.ditto.local/v1/communities
+[API] 2026/04/26 13:55:24 client.go:91: <-- 200 GET (107.164792ms)
+[API] 2026/04/26 15:22:41 client.go:72: --> GET https://api.ditto.local/v1/posts/trending
+[API] 2026/04/26 15:22:46 client.go:91: <-- 200 GET (5.275443083s)
+[API] 2026/04/26 15:22:58 client.go:72: --> GET https://api.ditto.local/v1/posts/trending
+[API] 2026/04/26 15:23:03 client.go:91: <-- 200 GET (5.2300175s)

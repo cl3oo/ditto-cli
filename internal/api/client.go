@@ -3,26 +3,41 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/rfcku/ditto/cli/internal/types"
+)
+
+var (
+	ErrUnauthorized = errors.New("unauthorized")
+	ErrNotFound     = errors.New("not found")
 )
 
 type Client struct {
 	BaseURL    string
 	Token      string
 	HTTPClient *http.Client
+	Logger     *log.Logger
 }
 
 func NewClient(baseURL string) *Client {
+	var logger *log.Logger
+	if logFile, err := os.OpenFile("ditto.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666); err == nil {
+		logger = log.New(logFile, "[API] ", log.Ldate|log.Ltime|log.Lshortfile)
+	}
+
 	return &Client{
 		BaseURL: baseURL,
 		HTTPClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: 15 * time.Second,
 		},
+		Logger: logger,
 	}
 }
 
@@ -32,17 +47,20 @@ func (c *Client) SetToken(token string) {
 
 func (c *Client) Request(method, path string, body interface{}, target interface{}) error {
 	var bodyReader io.Reader
+	var bodyBytes []byte
 	if body != nil {
-		jsonBody, err := json.Marshal(body)
+		var err error
+		bodyBytes, err = json.Marshal(body)
 		if err != nil {
-			return err
+			return fmt.Errorf("marshal body: %w", err)
 		}
-		bodyReader = bytes.NewBuffer(jsonBody)
+		bodyReader = bytes.NewBuffer(bodyBytes)
 	}
 
-	req, err := http.NewRequest(method, fmt.Sprintf("%s/v1%s", c.BaseURL, path), bodyReader)
+	url := fmt.Sprintf("%s/v1%s", c.BaseURL, path)
+	req, err := http.NewRequest(method, url, bodyReader)
 	if err != nil {
-		return err
+		return fmt.Errorf("create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -50,22 +68,53 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 		req.Header.Set("Authorization", "Bearer "+c.Token)
 	}
 
+	if c.Logger != nil {
+		c.Logger.Printf("--> %s %s", method, url)
+		if len(bodyBytes) > 0 {
+			c.Logger.Printf("Body: %s", string(bodyBytes))
+		}
+	}
+
+	start := time.Now()
 	resp, err := c.HTTPClient.Do(req)
+	duration := time.Since(start)
+
 	if err != nil {
-		return err
+		if c.Logger != nil {
+			c.Logger.Printf("<-- %s ERROR: %v (%v)", method, err, duration)
+		}
+		return fmt.Errorf("do request: %w", err)
 	}
 	defer resp.Body.Close()
 
+	if c.Logger != nil {
+		c.Logger.Printf("<-- %d %s (%v)", resp.StatusCode, method, duration)
+	}
+
 	if resp.StatusCode >= 400 {
+		if resp.StatusCode == http.StatusUnauthorized {
+			return ErrUnauthorized
+		}
+		if resp.StatusCode == http.StatusNotFound {
+			return ErrNotFound
+		}
+
 		var errResp types.ErrorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errResp); err == nil && errResp.Error != "" {
+		bodyBits, _ := io.ReadAll(resp.Body)
+		if c.Logger != nil && len(bodyBits) > 0 {
+			c.Logger.Printf("Error Body: %s", string(bodyBits))
+		}
+
+		if err := json.Unmarshal(bodyBits, &errResp); err == nil && errResp.Error != "" {
 			return fmt.Errorf("API error (%d): %s", resp.StatusCode, errResp.Error)
 		}
 		return fmt.Errorf("API error: %d", resp.StatusCode)
 	}
 
 	if target != nil {
-		return json.NewDecoder(resp.Body).Decode(target)
+		if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+			return fmt.Errorf("decode response: %w", err)
+		}
 	}
 
 	return nil

@@ -1,11 +1,13 @@
 package ui
 
 import (
+	"errors"
 	"os/exec"
 	"runtime"
 
 	"github.com/charmbracelet/bubbletea"
 	"github.com/rfcku/ditto/cli/internal/api"
+	"github.com/rfcku/ditto/cli/internal/config"
 	"github.com/rfcku/ditto/cli/internal/types"
 	"github.com/rfcku/ditto/cli/internal/ui/views"
 )
@@ -22,11 +24,12 @@ const (
 )
 
 type MainModel struct {
-	State  State
-	Client *api.Client
-	Error  error
-	Width  int
-	Height int
+	State         State
+	Client        *api.Client
+	Error         error
+	Width         int
+	Height        int
+	CommandBuffer string
 
 	// Sub-models
 	FeedModel       views.FeedModel
@@ -61,22 +64,61 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
+		if m.Error != nil {
+			m.Error = nil
+		}
+
+		key := msg.String()
+
+		// Handle command prefix
+		if m.CommandBuffer != "" {
+			m.CommandBuffer += key
+			executed := true
+			switch m.CommandBuffer {
+			case ":q":
+				return m, tea.Quit
+			case ":L":
+				m.State = StateLogin
+			case ":F":
+				m.State = StateFeed
+			case ":C":
+				m.State = StateLoading
+				m.CommandBuffer = ""
+				return m, m.fetchCommunities()
+			case ":n":
+				m.State = StateCreatePost
+			case ":r":
+				if m.State == StateFeed {
+					m.State = StateLoading
+					m.CommandBuffer = ""
+					return m, m.fetchFeed()
+				}
+				if m.State == StateCommunities {
+					m.State = StateLoading
+					m.CommandBuffer = ""
+					return m, m.fetchCommunities()
+				}
+			default:
+				executed = false
+			}
+
+			if executed || len(m.CommandBuffer) > 2 {
+				m.CommandBuffer = ""
+			}
+			if executed {
+				return m, nil
+			}
+		}
+
+		if key == ":" {
+			m.CommandBuffer = ":"
+			return m, nil
+		}
+
+		switch key {
+		case "ctrl+c":
 			return m, tea.Quit
-		case "L":
-			m.State = StateLogin
-			return m, nil
-		case "F":
-			m.State = StateFeed
-			return m, nil
-		case "C":
-			m.State = StateLoading
-			return m, m.fetchCommunities()
-		case "n":
-			m.State = StateCreatePost
-			return m, nil
-		case "a": // Upvote
+		case "a": // Upvote stays as single key for quick interaction, or could be :a
 			if m.State == StateFeed {
 				if item, ok := m.FeedModel.List.SelectedItem().(views.PostItem); ok {
 					return m, m.performVote(item.ID, 0, 1) // 0 = post
@@ -154,11 +196,25 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case loginSuccessMsg:
 		m.State = StateFeed
+		m.Client.SetToken(string(msg))
+		
+		// Persist token
+		cfg, _ := config.LoadConfig()
+		_ = cfg.UpdateToken(string(msg))
+		
 		return m, m.fetchFeed()
 
 	case errorMsg:
+		if errors.Is(msg, api.ErrUnauthorized) {
+			m.State = StateLogin
+			m.Error = errors.New("Session expired, please login again")
+			m.Client.SetToken("")
+			cfg, _ := config.LoadConfig()
+			_ = cfg.UpdateToken("")
+			return m, nil
+		}
 		m.Error = msg
-		m.State = StateFeed
+		// Don't change state, just show error on current screen
 		return m, nil
 	}
 

@@ -39,15 +39,25 @@ func (m MainModel) View() string {
 
 	// Footer
 	var footer string
+	helpText := "q: quit • :L: login • :F: feed • :C: communities • :n: new post • :r: refresh • enter: view"
 	if m.State == StatePostDetail {
-		footer = "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render("q: quit • esc/backspace: back • ↑/↓: scroll")
+		helpText = ":q: quit • esc: back • ↑/↓: scroll"
 	} else if m.State == StateCommunities {
-		footer = "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render("q: quit • esc/backspace: back • F: feed • r: refresh")
+		helpText = ":q: quit • esc: back • :F: feed • :r: refresh"
 	} else if m.State == StateCreatePost {
-		footer = "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render("q: quit • esc/backspace: back • tab: next field")
-	} else {
-		footer = "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render("q: quit • L: login • F: feed • C: communities • n: new post • r: refresh • enter: view post")
+		helpText = ":q: quit • esc: back • tab: next field"
 	}
+
+	footer = "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(helpText)
+	
+	if m.CommandBuffer != "" {
+		footer += "\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("15")).
+			Background(lipgloss.Color("62")).
+			Padding(0, 1).
+			Render(m.CommandBuffer)
+	}
+	
 	s.WriteString(footer)
 
 	return s.String()
