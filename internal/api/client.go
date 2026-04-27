@@ -9,8 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
-
 	"github.com/rfcku/ditto/cli/internal/types"
 )
 
@@ -57,8 +57,12 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 		bodyReader = bytes.NewBuffer(bodyBytes)
 	}
 
-	url := fmt.Sprintf("%s/v1%s", c.BaseURL, path)
+	url := fmt.Sprintf("%s%s", c.BaseURL, path)
+	if !strings.HasPrefix(path, "/v1") && !strings.Contains(c.BaseURL, "/v1") {
+	        url = fmt.Sprintf("%s/v1%s", c.BaseURL, path)
+	}
 	req, err := http.NewRequest(method, url, bodyReader)
+
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
@@ -121,61 +125,105 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 }
 
 func (c *Client) Login(username, password string) (string, error) {
-	body := map[string]string{
-		"username": username,
-		"password": password,
-	}
-	var res types.TokenResponse
-	err := c.Request("POST", "/auth/authorize", body, &res)
-	if err != nil {
-		return "", err
-	}
+        body := map[string]string{
+                "username": username,
+                "password": password,
+        }
+        var res types.TokenResponse
+        err := c.Request("POST", "/auth/authorize", body, &res)
+        if err != nil {
+                return "", err
+        }
 
-	if res.Token != "" {
-		c.SetToken(res.Token)
-	}
-	return res.Token, nil
+        if res.Token != "" {
+                c.SetToken(res.Token)
+        }
+        return res.Token, nil
+}
+
+func (c *Client) Register(username, password string) (string, error) {
+        body := map[string]string{
+                "username": username,
+                "password": password,
+        }
+        var res types.TokenResponse
+        err := c.Request("POST", "/auth/register", body, &res)
+        if err != nil {
+                return "", err
+        }
+
+        if res.Token != "" {
+                c.SetToken(res.Token)
+        }
+        return res.Token, nil
 }
 
 func (c *Client) GetTrendingPosts() ([]types.Post, error) {
-	var res struct {
-		Data []types.Post `json:"data"`
-	}
-	err := c.Request("GET", "/posts/trending", nil, &res)
-	return res.Data, err
+        var res struct {
+                Data []types.Post `json:"data"`
+        }
+        err := c.Request("GET", "/posts", nil, &res)
+        return res.Data, err
 }
 
 func (c *Client) GetCommunities() ([]types.Community, error) {
-	var res struct {
-		Data []types.Community `json:"data"`
-	}
-	err := c.Request("GET", "/communities", nil, &res)
-	return res.Data, err
+        var res struct {
+                Data []types.Community `json:"data"`
+        }
+        err := c.Request("GET", "/communities", nil, &res)
+        return res.Data, err
 }
 
 func (c *Client) Vote(targetID string, targetType int, value int) error {
-	path := fmt.Sprintf("/votes/%s?type=%d&value=%d", targetID, targetType, value)
-	return c.Request("POST", path, nil, nil)
+        path := fmt.Sprintf("/votes/%s?type=%d&value=%d", targetID, targetType, value)
+        return c.Request("POST", path, nil, nil)
 }
 
 func (c *Client) CreateComment(targetID string, targetType int, content string) error {
-	body := map[string]string{"content": content}
-	path := fmt.Sprintf("/comments/%s?type=%d", targetID, targetType)
-	return c.Request("POST", path, body, nil)
+        body := map[string]string{"content": content}
+        path := fmt.Sprintf("/comments/%s?type=%d", targetID, targetType)
+        return c.Request("POST", path, body, nil)
 }
 
 func (c *Client) JoinCommunity(communityID string) error {
-	return c.Request("POST", fmt.Sprintf("/communities/%s/join", communityID), nil, nil)
+        return c.Request("POST", fmt.Sprintf("/communities/%s/join", communityID), nil, nil)
+}
+
+func (c *Client) CreateCommunity(name, title, description string) error {
+        body := map[string]string{
+                "name":        name,
+                "title":       title,
+                "description": description,
+        }
+        return c.Request("POST", "/communities", body, nil)
 }
 
 func (c *Client) CreatePost(title, content, communityName string) error {
-	body := map[string]string{
-		"title":          title,
-		"content":        content,
-		"community_name": communityName,
+	communities, err := c.GetCommunities()
+	if err != nil {
+		return fmt.Errorf("failed to fetch communities: %w", err)
 	}
-	return c.Request("POST", "/posts", body, nil)
+
+	var communityID string
+	for _, comm := range communities {
+		if comm.Name == communityName {
+			communityID = comm.ID
+			break
+		}
+	}
+
+	if communityID == "" {
+		return fmt.Errorf("community not found: %s", communityName)
+	}
+
+	body := map[string]string{
+		"title":   title,
+		"content": content,
+	}
+	path := fmt.Sprintf("/posts/%s?type=1", communityID)
+	return c.Request("POST", path, body, nil)
 }
+
 
 func (c *Client) GetFeed() ([]types.Post, error) {
 	var res struct {

@@ -113,7 +113,17 @@ func TestClient_GetTrendingPosts(t *testing.T) {
 
 func TestClient_CreatePost(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusCreated)
+		if r.Method == "GET" && r.URL.Path == "/v1/communities" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"data": [{"id": "c1", "name": "Community"}]}`))
+			return
+		}
+		if r.Method == "POST" && r.URL.Path == "/v1/posts/c1" && r.URL.Query().Get("type") == "1" {
+			w.WriteHeader(http.StatusCreated)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer server.Close()
 
