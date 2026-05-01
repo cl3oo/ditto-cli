@@ -21,6 +21,7 @@ type Config struct {
 }
 
 type AppearanceConfig struct {
+	Theme           string `toml:"theme"`
 	AccentColor     string `toml:"accent_color"`
 	BackgroundColor string `toml:"background_color"`
 	BorderColor     string `toml:"border_color"`
@@ -68,6 +69,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		BaseURL: DefaultBaseURL,
 		Appearance: AppearanceConfig{
+			Theme:           "auto",
 			AccentColor:     "#7D56F4",
 			BackgroundColor: "#1A1B26",
 			BorderColor:     "#874BFD",

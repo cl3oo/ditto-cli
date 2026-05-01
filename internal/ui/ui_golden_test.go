@@ -66,7 +66,7 @@ func TestGoldenPostDetailLargeContent(t *testing.T) {
 	cfg := config.DefaultConfig()
 	main := NewMainModel(cfg)
 	m := views.NewPostDetailModel()
-	m.SetTheme(main.Theme.Accent, main.Theme.Selected, main.Theme.Markdown)
+	m.SetTheme(main.Theme)
 	m.SetSize(72, 22)
 
 	now := time.Now()

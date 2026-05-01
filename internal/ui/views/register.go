@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
 type RegisterModel struct {
@@ -13,6 +14,7 @@ type RegisterModel struct {
 	Confirm  textinput.Model
 	Focused  int // 0: username, 1: email, 2: password, 3: confirm, 4: submit, 5: cancel
 	Error    string
+	Theme    theme.Theme
 }
 
 func NewRegisterModel() RegisterModel {
@@ -44,6 +46,10 @@ func NewRegisterModel() RegisterModel {
 
 func (m RegisterModel) Init() tea.Cmd {
 	return textinput.Blink
+}
+
+func (m *RegisterModel) SetTheme(t theme.Theme) {
+	m.Theme = t
 }
 
 func (m RegisterModel) Update(msg tea.Msg) (RegisterModel, tea.Cmd) {
@@ -88,7 +94,7 @@ func (m RegisterModel) Update(msg tea.Msg) (RegisterModel, tea.Cmd) {
 func (m RegisterModel) View() string {
 	var s string
 
-	s += lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62")).Render("Register a New Ditto Account") + "\n\n"
+	s += m.Theme.AccentText.Bold(true).Render("Register a New Ditto Account") + "\n\n"
 	s += m.Username.View() + "\n"
 	s += m.Email.View() + "\n"
 	s += m.Password.View() + "\n"
@@ -96,18 +102,18 @@ func (m RegisterModel) View() string {
 
 	submitBtn := "[ Register ]"
 	if m.Focused == 4 {
-		submitBtn = lipgloss.NewStyle().Foreground(lipgloss.Color("170")).Bold(true).Render("[ Register ]")
+		submitBtn = m.Theme.Selected.Render("[ Register ]")
 	}
 
 	cancelBtn := "[ Cancel ]"
 	if m.Focused == 5 {
-		cancelBtn = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Bold(true).Render("[ Cancel ]")
+		cancelBtn = m.Theme.TextSubtle.Render("[ Cancel ]")
 	}
 
 	s += submitBtn + "  " + cancelBtn + "\n"
 
 	if m.Error != "" {
-		s += "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render(m.Error)
+		s += "\n" + m.Theme.Error.Render(m.Error)
 	}
 
 	return lipgloss.NewStyle().Padding(1, 2).Render(s)

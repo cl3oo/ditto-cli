@@ -81,7 +81,7 @@ func (m MainModel) View() string {
 	}
 
 	if m.StatusMessage != "" {
-		style := m.Theme.Selected
+		style := m.Theme.Success
 		if strings.HasPrefix(m.StatusMessage, "Error") {
 			style = m.Theme.Error
 		}
@@ -151,10 +151,15 @@ func (m MainModel) renderFooterHelp() string {
 	}
 
 	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("230")).Padding(0, 1)
-	globalStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")).Padding(0, 1)
+	globalStyle := m.Theme.Text.Padding(0, 1)
 	localTitleStyle := lipgloss.NewStyle().Bold(true).Foreground(m.Theme.Accent).Padding(0, 1)
-	localStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("255")).Padding(0, 1)
+	localStyle := m.Theme.Text.Bold(true).Padding(0, 1)
 	lineStyle := lipgloss.NewStyle().Background(lipgloss.Color("236")).Width(max(0, m.Width))
+	if lipgloss.HasDarkBackground() {
+		lineStyle = lineStyle.Background(lipgloss.Color("235"))
+	} else {
+		lineStyle = lineStyle.Background(lipgloss.Color("254"))
+	}
 
 	return lipgloss.JoinVertical(lipgloss.Left,
 		lineStyle.Render(section("Global", global, titleStyle, globalStyle)),
@@ -166,18 +171,18 @@ func (m MainModel) renderEmptyState(title, body string, actions []string) string
 	lines := []string{
 		m.Theme.Title.Render(" " + title + " "),
 		"",
-		body,
+		m.Theme.Text.Render(body),
 	}
 	if len(actions) > 0 {
-		lines = append(lines, "", "Try:")
+		lines = append(lines, "", m.Theme.Text.Render("Try:"))
 		for _, action := range actions {
-			lines = append(lines, "  • "+action)
+			lines = append(lines, "  • "+m.Theme.TextSubtle.Render(action))
 		}
 	}
 
 	box := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("240")).
+		BorderForeground(m.Theme.TextSubtle.GetForeground()).
 		Padding(1, 2).
 		Width(min(max(52, m.Width-12), 88))
 
@@ -238,8 +243,7 @@ func (m MainModel) renderHeader() string {
 		if m.Wallet != nil {
 			userStr += fmt.Sprintf(" | 🪙 %d | 💎 %d", m.Wallet.Coins, m.Wallet.Tokens)
 		}
-		header += lipgloss.NewStyle().
-			Foreground(lipgloss.Color("241")).
+		header += m.Theme.TextSubtle.
 			MarginLeft(1).
 			Render("(" + userStr + ")")
 	}

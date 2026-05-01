@@ -4,6 +4,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
+	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
 type HelpModel struct {
@@ -11,6 +12,7 @@ type HelpModel struct {
 	Ready    bool
 	Width    int
 	Height   int
+	Theme    theme.Theme
 }
 
 func NewHelpModel() HelpModel {
@@ -41,12 +43,21 @@ func (m *HelpModel) SetSize(width, height int) {
 	m.Height = height
 	m.Viewport.Width = width
 	m.Viewport.Height = height
+	m.render()
+}
+
+func (m *HelpModel) SetTheme(t theme.Theme) {
+	m.Theme = t
 	if m.Ready {
 		m.render()
 	}
 }
 
 func (m *HelpModel) render() {
+	if m.Width == 0 || m.Height == 0 {
+		return
+	}
+
 	content := `
 # Ditto CLI Manual 📖
 
@@ -69,7 +80,7 @@ Press **:** to enter command mode:
 - **:feed**: Go to the trending feed.
 - **:communities**: View all communities.
 - **:new**: Create a new post.
-- **:search <query>**: Search for communities.
+- **:search <query>**: Search for communities and posts.
 - **:settings**: Edit your profile (avatar).
 - **:logout**: Log out of your account.
 - **:q** or **:quit**: Exit the application.
@@ -87,10 +98,18 @@ Press **:** to enter command mode:
 ---
 Press **q** to return to the feed.
 `
-	renderer, _ := glamour.NewTermRenderer(
-		glamour.WithAutoStyle(),
-		glamour.WithWordWrap(m.Width-4),
-	)
+	var renderer *glamour.TermRenderer
+	if m.Theme.Markdown != "" {
+		renderer, _ = glamour.NewTermRenderer(
+			glamour.WithStylesFromJSONBytes([]byte(m.Theme.Markdown)),
+			glamour.WithWordWrap(m.Width-4),
+		)
+	} else {
+		renderer, _ = glamour.NewTermRenderer(
+			glamour.WithAutoStyle(),
+			glamour.WithWordWrap(m.Width-4),
+		)
+	}
 	out, _ := renderer.Render(content)
 	m.Viewport.SetContent(out)
 	m.Ready = true

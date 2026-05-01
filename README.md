@@ -71,7 +71,7 @@ While in the TUI, press `:` to enter command mode:
 | `:f`, `:feed` | Return to the home feed |
 | `:c`, `:communities` | View communities |
 | `:n`, `:new` | Create a new post |
-| `:s <query>` | Search communities |
+| `:s <query>` | Search communities and posts |
 | `:man` | Open the user manual |
 | `:edit` | Edit the current post or community |
 | `:delete` | Delete the current post or community |

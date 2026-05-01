@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
 type LoginModel struct {
@@ -14,6 +15,7 @@ type LoginModel struct {
 	Error        string
 	SuccessToken string
 	LoggedIn     bool
+	Theme        theme.Theme
 }
 
 func NewLoginModel() LoginModel {
@@ -35,6 +37,10 @@ func NewLoginModel() LoginModel {
 
 func (m LoginModel) Init() tea.Cmd {
 	return textinput.Blink
+}
+
+func (m *LoginModel) SetTheme(t theme.Theme) {
+	m.Theme = t
 }
 
 func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
@@ -76,7 +82,7 @@ func (m LoginModel) View() string {
 	if m.LoggedIn {
 		title = "Successfully Authenticated! ✨"
 	}
-	s += lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62")).Render(title) + "\n\n"
+	s += m.Theme.AccentText.Bold(true).Render(title) + "\n\n"
 
 	if !m.LoggedIn {
 		s += m.Username.View() + "\n"
@@ -86,8 +92,8 @@ func (m LoginModel) View() string {
 		if len(displayToken) > 8 {
 			displayToken = displayToken[:8] + "..."
 		}
-		s += lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Render("Welcome back! Your session token was saved.") + "\n"
-		s += lipgloss.NewStyle().Italic(true).Faint(true).Render(displayToken) + "\n\n"
+		s += m.Theme.Success.Render("Welcome back! Your session token was saved.") + "\n"
+		s += m.Theme.TextSubtle.Render(displayToken) + "\n\n"
 	}
 
 	submitLabel := "[ Submit ]"
@@ -97,20 +103,20 @@ func (m LoginModel) View() string {
 
 	submitBtn := submitLabel
 	if m.Focused == 2 {
-		submitBtn = lipgloss.NewStyle().Foreground(lipgloss.Color("170")).Bold(true).Render(submitLabel)
+		submitBtn = m.Theme.Selected.Render(submitLabel)
 	}
 
 	registerBtn := "[ Register New Account ]"
 	if m.Focused == 3 {
-		registerBtn = lipgloss.NewStyle().Foreground(lipgloss.Color("170")).Bold(true).Render("[ Register New Account ]")
+		registerBtn = m.Theme.Selected.Render("[ Register New Account ]")
 	}
 
 	s += submitBtn + "  " + registerBtn + "\n"
 
 	if m.Error != "" {
 		cuteMsg := "Oopsie! Something went wrong... (´･ω･`)"
-		s += "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("211")).Render(cuteMsg) + "\n"
-		s += lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render(fmt.Sprintf("Error: %s", m.Error))
+		s += "\n" + m.Theme.TextSubtle.Render(cuteMsg) + "\n"
+		s += m.Theme.Error.Render(fmt.Sprintf("Error: %s", m.Error))
 	}
 
 	return lipgloss.NewStyle().Padding(1, 2).Render(s)

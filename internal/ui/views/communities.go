@@ -8,6 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/rfcku/ditto-cli/internal/types"
+	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
 type CommunityItem struct {
@@ -29,7 +30,7 @@ func (i UserItem) Description() string { return "Followed user" }
 func (i UserItem) FilterValue() string { return i.Username }
 
 type communityDelegate struct {
-	Theme lipgloss.Style
+	Theme theme.Theme
 }
 
 func (d communityDelegate) Height() int                               { return 5 }
@@ -38,50 +39,47 @@ func (d communityDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return n
 func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
 	isSelected := index == m.Index()
 
-	cardStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("238")).
-		Padding(0, 1).
+	cardStyle := d.Theme.Post.
 		Width(max(20, m.Width()-4))
 
 	if isSelected {
-		cardStyle = cardStyle.BorderForeground(lipgloss.Color("170"))
+		cardStyle = cardStyle.BorderForeground(d.Theme.Accent)
 	}
 
 	var header, title, stats string
 
 	if i, ok := listItem.(CommunityItem); ok {
-		header = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+		header = d.Theme.TextSubtle.Render(
 			fmt.Sprintf("Community • Created %s", RelativeTime(i.CreatedAt)),
 		)
-		titleStyle := lipgloss.NewStyle().Bold(true)
+		titleStyle := d.Theme.Text.Bold(true)
 		if isSelected {
-			titleStyle = titleStyle.Foreground(lipgloss.Color("170"))
+			titleStyle = d.Theme.AccentText.Bold(true)
 		}
 		title = titleStyle.Render(i.Title() + ": " + i.Community.Title)
-		stats = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+		stats = d.Theme.TextSubtle.Render(
 			fmt.Sprintf("👥 %d members • 📝 %d posts", i.Scores.SubCount, i.Scores.PostCount),
 		)
 	} else if i, ok := listItem.(UserItem); ok {
-		header = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+		header = d.Theme.TextSubtle.Render(
 			fmt.Sprintf("User • Joined %s", RelativeTime(i.CreatedAt)),
 		)
-		titleStyle := lipgloss.NewStyle().Bold(true)
+		titleStyle := d.Theme.Text.Bold(true)
 		if isSelected {
-			titleStyle = titleStyle.Foreground(lipgloss.Color("170"))
+			titleStyle = d.Theme.AccentText.Bold(true)
 		}
 		title = titleStyle.Render(i.Title())
-		stats = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(i.Description())
+		stats = d.Theme.TextSubtle.Render(i.Description())
 	} else if i, ok := listItem.(PostItem); ok {
-		header = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+		header = d.Theme.TextSubtle.Render(
 			fmt.Sprintf("u/%s in c/%s • %s", i.Author.Username, i.Community.Name, RelativeTime(i.CreatedAt)),
 		)
-		titleStyle := lipgloss.NewStyle().Bold(true)
+		titleStyle := d.Theme.Text.Bold(true)
 		if isSelected {
-			titleStyle = titleStyle.Foreground(lipgloss.Color("170"))
+			titleStyle = d.Theme.AccentText.Bold(true)
 		}
 		title = titleStyle.Render(i.Title())
-		stats = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+		stats = d.Theme.TextSubtle.Render(
 			fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d", i.Scores.VoteScore, i.Scores.CommentCount, i.Scores.AwardCount),
 		)
 	} else {
@@ -101,7 +99,7 @@ func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem
 type CommunityModel struct {
 	List   list.Model
 	Loaded bool
-	Theme  lipgloss.Style
+	Theme  theme.Theme
 }
 
 func NewCommunityModel() CommunityModel {
@@ -115,9 +113,9 @@ func NewCommunityModel() CommunityModel {
 	}
 }
 
-func (m *CommunityModel) SetTheme(selected lipgloss.Style) {
-	m.Theme = selected
-	m.List.SetDelegate(communityDelegate{Theme: selected})
+func (m *CommunityModel) SetTheme(t theme.Theme) {
+	m.Theme = t
+	m.List.SetDelegate(communityDelegate{Theme: t})
 }
 func (m CommunityModel) Init() tea.Cmd {
 	return nil

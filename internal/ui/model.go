@@ -90,11 +90,12 @@ type MainModel struct {
 }
 
 func NewMainModel(cfg *config.Config) MainModel {
+	t := NewTheme(cfg.Appearance)
 	m := MainModel{
 		State:              StateLoading,
 		Client:             api.NewClient(cfg.BaseURL),
 		Config:             cfg,
-		Theme:              NewTheme(cfg.Appearance),
+		Theme:              t,
 		Keys:               NewKeyMap(cfg.Keys),
 		FeedModel:          views.NewFeedModel(),
 		LoginModel:         views.NewLoginModel(),
@@ -109,10 +110,20 @@ func NewMainModel(cfg *config.Config) MainModel {
 		PaletteModel:       views.NewCommandPaletteModel(),
 	}
 	m.Client.SetToken(cfg.Token)
-	m.FeedModel.SetTheme(m.Theme.Selected)
-	m.CommunityModel.SetTheme(m.Theme.Selected)
-	m.PaletteModel.SetTheme(m.Theme.Selected)
-	m.PostDetailModel.SetTheme(m.Theme.Accent, m.Theme.Selected, m.Theme.Markdown)
+
+	// Propagate theme to sub-models
+	m.FeedModel.SetTheme(t)
+	m.CommunityModel.SetTheme(t)
+	m.PostDetailModel.SetTheme(t)
+	m.HelpModel.SetTheme(t)
+	m.LoginModel.SetTheme(t)
+	m.RegisterModel.SetTheme(t)
+	m.CreatePostModel.SetTheme(t)
+	m.EditPostModel.SetTheme(t)
+	m.EditCommunityModel.SetTheme(t)
+	m.SettingsModel.SetTheme(t)
+	m.PaletteModel.SetTheme(t)
+
 	return m
 }
 
@@ -668,9 +679,13 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			if m.State == StateCommunities {
-				if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
+				switch item := m.CommunityModel.List.SelectedItem().(type) {
+				case views.CommunityItem:
 					m.State = StateLoading
 					return m, m.fetchCommunityDetail(item.ID)
+				case views.PostItem:
+					m.State = StateLoading
+					return m, m.fetchPostDetail(item.ID)
 				}
 			}
 			if m.State == StatePostDetail {
@@ -743,9 +758,15 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Me = (*types.User)(msg)
 		return m, nil
 
+	case meErrorMsg:
+		return m.handleMeError(msg.err)
+
 	case walletMsg:
 		m.Wallet = (*types.Wallet)(msg)
 		return m, nil
+
+	case walletErrorMsg:
+		return m.handleWalletError(msg.err)
 
 	case commentSuccessMsg:
 		m.StatusMessage = string(msg)
@@ -757,35 +778,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 
 	case errorMsg:
-		if errors.Is(msg, api.ErrUnauthorized) {
-			// If we are loading and get unauthorized, maybe only one request failed.
-			// Don't wipe the token immediately during initial boot unless we are sure.
-			if m.State != StateLoading {
-				if m.Client.Token != "" {
-					m.StatusMessage = "Session expired, please login again"
-					m.Client.SetToken("")
-					// DO NOT call m.Config.UpdateToken("") here to avoid wiping the file on transient errors
-				}
-				if m.State != StateLogin && m.State != StateRegister {
-					m.State = StateLogin
-				}
-			} else {
-				// If we are loading, just show error but keep the token for now
-				m.StatusMessage = "Some profile data failed to load (Unauthorized)"
-			}
-			return m, m.clearStatus()
-		}
-		if m.State == StateLogin {
-			m.LoginModel.Error = msg.Error()
-		}
-		if m.State == StateRegister {
-			m.RegisterModel.Error = msg.Error()
-		}
-		m.StatusMessage = fmt.Sprintf("Error: %v", msg)
-		if m.State == StateLoading {
-			m.State = StateFeed
-		}
-		return m, m.clearStatus()
+		return m.handleGenericError(error(msg))
 	}
 
 	// Delegate to sub-models
@@ -837,7 +830,9 @@ type appendCommentsMsg []types.Comment
 type loginSuccessMsg string
 type commentSuccessMsg string
 type meMsg *types.User
+type meErrorMsg struct{ err error }
 type walletMsg *types.Wallet
+type walletErrorMsg struct{ err error }
 type errorMsg error
 
 func (m MainModel) fetchFeed() tea.Cmd {
@@ -854,7 +849,7 @@ func (m MainModel) fetchMe() tea.Cmd {
 	return func() tea.Msg {
 		user, err := m.Client.GetMe()
 		if err != nil {
-			return errorMsg(err)
+			return meErrorMsg{err: err}
 		}
 		return meMsg(user)
 	}
@@ -864,10 +859,66 @@ func (m MainModel) fetchWallet() tea.Cmd {
 	return func() tea.Msg {
 		wallet, err := m.Client.GetWallet()
 		if err != nil {
-			return errorMsg(err)
+			return walletErrorMsg{err: err}
 		}
 		return walletMsg(wallet)
 	}
+}
+
+func (m MainModel) handleMeError(err error) (tea.Model, tea.Cmd) {
+	if errors.Is(err, api.ErrUnauthorized) {
+		if m.Client.Token != "" {
+			m.StatusMessage = "Session expired, please login again"
+			m.Client.SetToken("")
+		}
+		if m.State != StateLogin && m.State != StateRegister {
+			m.State = StateLogin
+		}
+		return m, m.clearStatus()
+	}
+
+	return m.handleGenericError(err)
+}
+
+func (m MainModel) handleWalletError(err error) (tea.Model, tea.Cmd) {
+	if errors.Is(err, api.ErrUnauthorized) {
+		m.Wallet = nil
+		return m, nil
+	}
+
+	return m.handleGenericError(err)
+}
+
+func (m MainModel) handleGenericError(err error) (tea.Model, tea.Cmd) {
+	if errors.Is(err, api.ErrUnauthorized) {
+		// If we are loading and get unauthorized, maybe only one request failed.
+		// Don't wipe the token immediately during initial boot unless we are sure.
+		if m.State != StateLoading {
+			if m.Client.Token != "" {
+				m.StatusMessage = "Session expired, please login again"
+				m.Client.SetToken("")
+				// DO NOT call m.Config.UpdateToken("") here to avoid wiping the file on transient errors
+			}
+			if m.State != StateLogin && m.State != StateRegister {
+				m.State = StateLogin
+			}
+		} else {
+			// If we are loading, just show error but keep the token for now
+			m.StatusMessage = "Some profile data failed to load (Unauthorized)"
+		}
+		return m, m.clearStatus()
+	}
+	if m.State == StateLogin {
+		m.LoginModel.Error = err.Error()
+	}
+	if m.State == StateRegister {
+		m.RegisterModel.Error = err.Error()
+	}
+	m.StatusMessage = fmt.Sprintf("Error: %v", err)
+	if m.State == StateLoading {
+		m.State = StateFeed
+	}
+	return m, m.clearStatus()
 }
 
 func (m MainModel) fetchCommunities() tea.Cmd {
@@ -949,8 +1000,8 @@ func (m MainModel) performLogin() tea.Cmd {
 
 func (m MainModel) performSearch(query string) tea.Cmd {
 	return func() tea.Msg {
-		communities, _ := m.Client.SearchCommunities(query)
-		posts, _ := m.Client.SearchPosts(query)
+		communities, communitiesErr := m.Client.SearchCommunities(query)
+		posts, postsErr := m.Client.SearchPosts(query)
 
 		var items []list.Item
 		for _, c := range communities {
@@ -960,11 +1011,22 @@ func (m MainModel) performSearch(query string) tea.Cmd {
 			items = append(items, views.PostItem{Post: p})
 		}
 
-		if len(items) == 0 {
-			return errorMsg(fmt.Errorf("no results found for '%s'", query))
+		if len(items) > 0 {
+			return searchMsg(items)
 		}
 
-		return searchMsg(items)
+		var errs []string
+		if communitiesErr != nil {
+			errs = append(errs, fmt.Sprintf("community search failed: %v", communitiesErr))
+		}
+		if postsErr != nil {
+			errs = append(errs, fmt.Sprintf("post search failed: %v", postsErr))
+		}
+		if len(errs) > 0 {
+			return errorMsg(fmt.Errorf("%s", strings.Join(errs, "; ")))
+		}
+
+		return errorMsg(fmt.Errorf("no results found for '%s'", query))
 	}
 }
 

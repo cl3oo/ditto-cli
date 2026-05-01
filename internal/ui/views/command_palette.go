@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
 type CommandAction string
@@ -33,7 +34,7 @@ func (i CommandItem) Description() string { return i.DescriptionText }
 func (i CommandItem) FilterValue() string { return i.TitleText + " " + i.DescriptionText }
 
 type commandDelegate struct {
-	ActiveStyle lipgloss.Style
+	Theme theme.Theme
 }
 
 func (d commandDelegate) Height() int                               { return 2 }
@@ -47,11 +48,11 @@ func (d commandDelegate) Render(w io.Writer, m list.Model, index int, listItem l
 
 	var str, desc string
 	if index == m.Index() {
-		str = d.ActiveStyle.Render("> " + i.TitleText)
-		desc = d.ActiveStyle.Foreground(lipgloss.Color("241")).Render(i.DescriptionText)
+		str = d.Theme.Selected.Render("> " + i.TitleText)
+		desc = d.Theme.TextSubtle.Render(i.DescriptionText)
 	} else {
 		str = lipgloss.NewStyle().PaddingLeft(2).Render(i.TitleText)
-		desc = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("241")).Render(i.DescriptionText)
+		desc = d.Theme.TextSubtle.PaddingLeft(2).Render(i.DescriptionText)
 	}
 
 	_, _ = fmt.Fprintf(w, "%s\n%s", str, desc)
@@ -59,7 +60,7 @@ func (d commandDelegate) Render(w io.Writer, m list.Model, index int, listItem l
 
 type CommandPaletteModel struct {
 	List  list.Model
-	Theme lipgloss.Style
+	Theme theme.Theme
 }
 
 func NewCommandPaletteModel() CommandPaletteModel {
@@ -74,27 +75,20 @@ func NewCommandPaletteModel() CommandPaletteModel {
 		CommandItem{Action: ActionQuit, TitleText: "Quit", DescriptionText: "Exit the application"},
 	}
 
-	l := list.New(items, commandDelegate{ActiveStyle: lipgloss.NewStyle().Foreground(lipgloss.Color("170"))}, 0, 0)
+	l := list.New(items, commandDelegate{}, 0, 0)
 	l.Title = "Command Palette"
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(true)
-	l.Styles.Title = lipgloss.NewStyle().
-		Background(lipgloss.Color("170")).
-		Foreground(lipgloss.Color("230")).
-		Padding(0, 1)
 
 	return CommandPaletteModel{
 		List: l,
 	}
 }
 
-func (m *CommandPaletteModel) SetTheme(selected lipgloss.Style) {
-	m.Theme = selected
-	m.List.SetDelegate(commandDelegate{ActiveStyle: selected})
-	m.List.Styles.Title = selected.
-		Background(selected.GetForeground()).
-		Foreground(lipgloss.Color("230")).
-		Padding(0, 1)
+func (m *CommandPaletteModel) SetTheme(t theme.Theme) {
+	m.Theme = t
+	m.List.SetDelegate(commandDelegate{Theme: t})
+	m.List.Styles.Title = t.Title
 }
 
 func (m CommandPaletteModel) Update(msg tea.Msg) (CommandPaletteModel, tea.Cmd) {
