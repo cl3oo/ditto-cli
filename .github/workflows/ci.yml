@@ -7,6 +7,9 @@ on:
       - '**.go'
       - 'go.mod'
       - 'go.sum'
+      - 'Makefile'
+      - '.goreleaser.yml'
+      - '.github/workflows/*.yml'
   pull_request:
     branches: [ main ]
 
@@ -57,3 +60,25 @@ jobs:
 
       - name: Build
         run: make build
+
+  release-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Set up GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          install-only: true
+
+      - name: Validate release config
+        run: make release-check

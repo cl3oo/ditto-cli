@@ -38,6 +38,17 @@ ditto-cli tui
 ditto-cli get posts --random 5
 ```
 
+### Install prebuilt binaries from GitHub Releases
+
+Download the archive that matches your OS and CPU from the Releases page, then extract it and move `ditto-cli` somewhere on your `PATH`.
+
+```bash
+# Example for macOS Apple Silicon
+curl -L https://github.com/rfcku/ditto-cli/releases/latest/download/ditto-cli_VERSION_Darwin_arm64.tar.gz | tar -xz
+chmod +x ditto-cli
+mv ditto-cli /usr/local/bin/
+```
+
 ### Environment Variables
 
 | Variable | Description | Default |
@@ -46,7 +57,7 @@ ditto-cli get posts --random 5
 
 ## Usage
 
-Ditto CLI supports two workflows:
+Ditto CLI supports two workflows. You can also check the exact build metadata with `ditto-cli version`:
 
 - **TUI mode** for browsing, posting, moderation, and day-to-day navigation inside the terminal.
 - **CLI mode** for one-off actions, scripting, smoke tests, and quick API checks.
@@ -135,6 +146,9 @@ make build
 - `make lint`: Run the linter (`golangci-lint`).
 - `make build`: Compile the binary into `dist/ditto-cli`.
 - `make smoke`: Run a product smoke test for register, community creation, post creation, feed reads, join, and vote flows against a live Ditto API.
+- `make release-check`: Validate the GoReleaser config.
+- `make release-build`: Build release archives locally without publishing.
+- `make release-test`: Run a full local snapshot release without publishing.
 - `make clean`: Remove generated build artifacts from `dist/`.
 
 ### Smoke Testing Against a Live API
@@ -170,4 +184,6 @@ This project uses git hooks to ensure code quality:
 
 ## CI/CD
 
-GitHub Actions runs test, lint, and build checks on pushes to `main` and on pull requests. Local `make test`, `make lint`, and `make build` should match that baseline before opening a PR. For live-environment validation, `make smoke` provides a repeatable product-level check outside the default CI matrix.
+GitHub Actions runs test, lint, build, and release-config validation checks on pushes to `main` and on pull requests. Local `make test`, `make lint`, `make build`, and `make release-check` should match that baseline before opening a PR. For live-environment validation, `make smoke` provides a repeatable product-level check outside the default CI matrix.
+
+Tagged releases (`v*`) publish prebuilt archives plus checksums for macOS and Linux on `amd64` and `arm64` through GoReleaser.
