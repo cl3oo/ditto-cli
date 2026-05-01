@@ -20,7 +20,9 @@ func TestDefaultConfig(t *testing.T) {
 
 func TestConfigSaveAndLoad(t *testing.T) {
 	tmpFile := "config_test.toml"
-	defer os.Remove(tmpFile)
+	defer func() {
+		_ = os.Remove(tmpFile)
+	}()
 
 	ConfigPathOverride = tmpFile
 	defer func() { ConfigPathOverride = "" }()

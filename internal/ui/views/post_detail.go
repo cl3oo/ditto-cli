@@ -245,10 +245,10 @@ func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) st
 		contentStyle = contentStyle.Background(lipgloss.Color("235"))
 	}
 
-	s.WriteString(fmt.Sprintf("%s %s %s\n",
+	_, _ = fmt.Fprintf(&s, "%s %s %s\n",
 		indent,
 		authorStyle.Render("u/"+c.Author.Username),
-		scoreStyle.Render(fmt.Sprintf("↑↓ %d", c.Scores.VoteScore))))
+		scoreStyle.Render(fmt.Sprintf("↑↓ %d", c.Scores.VoteScore)))
 
 	// Wrap comment content
 	s.WriteString(contentStyle.Render(c.Content) + "\n\n")

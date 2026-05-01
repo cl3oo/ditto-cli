@@ -226,7 +226,9 @@ func TestClient_GetComments(t *testing.T) {
 func TestClient_Logging(t *testing.T) {
 	logFile := "ditto.log"
 	_ = os.Remove(logFile)
-	defer os.Remove(logFile)
+	defer func() {
+		_ = os.Remove(logFile)
+	}()
 
 	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
@@ -241,7 +243,7 @@ func TestClient_Logging(t *testing.T) {
 
 	client := NewClientWithLogger(server.URL, logger)
 	_ = client.Request("GET", "/log-test", nil, nil)
-	f.Close()
+	_ = f.Close()
 
 	data, err := os.ReadFile(logFile)
 	if err != nil {
@@ -265,9 +267,11 @@ func TestClient_UploadMedia(t *testing.T) {
 
 	// Create a temporary file to upload
 	tmpFile, _ := os.CreateTemp("", "test-upload")
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 	_, _ = tmpFile.Write([]byte("test data"))
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	client := NewClient(server.URL)
 	err := client.UploadMedia("p1", 2, tmpFile.Name())

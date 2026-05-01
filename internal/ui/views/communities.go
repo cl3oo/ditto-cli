@@ -14,19 +14,19 @@ type CommunityItem struct {
 	types.Community
 }
 
-func (i CommunityItem) Title() string { return "c/" + i.Community.Name }
+func (i CommunityItem) Title() string { return "c/" + i.Name }
 func (i CommunityItem) Description() string {
-	return fmt.Sprintf("%s • 👥 %d • 📝 %d", i.Community.Title, i.Community.Scores.SubCount, i.Community.Scores.PostCount)
+	return fmt.Sprintf("%s • 👥 %d • 📝 %d", i.Community.Title, i.Scores.SubCount, i.Scores.PostCount)
 }
-func (i CommunityItem) FilterValue() string { return i.Community.Name + " " + i.Community.Title }
+func (i CommunityItem) FilterValue() string { return i.Name + " " + i.Community.Title }
 
 type UserItem struct {
 	types.User
 }
 
-func (i UserItem) Title() string       { return "u/" + i.User.Username }
+func (i UserItem) Title() string       { return "u/" + i.Username }
 func (i UserItem) Description() string { return "Followed user" }
-func (i UserItem) FilterValue() string { return i.User.Username }
+func (i UserItem) FilterValue() string { return i.Username }
 
 type communityDelegate struct {
 	Theme lipgloss.Style
@@ -58,7 +58,7 @@ func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem
 		title = d.Theme.Render(titleStr)
 	}
 
-	fmt.Fprintf(w, "  %s\n  %s", title, desc)
+	_, _ = fmt.Fprintf(w, "  %s\n  %s", title, desc)
 }
 
 type CommunityModel struct {

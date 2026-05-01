@@ -28,7 +28,7 @@ cd ditto-cli
 make build
 
 # Launch the TUI
-./ditto-cli tui
+./dist/ditto-cli tui
 ```
 
 ### Environment Variables
@@ -90,16 +90,16 @@ You can also use `ditto-cli` for one-off operations:
 go run . tui
 
 # Upload media to a post
-./ditto-cli upload image.png --target <post_id>
+./dist/ditto-cli upload image.png --target <post_id>
 
 # Download media
-./ditto-cli download <media_id> --output photo.png
+./dist/ditto-cli download <media_id> --output photo.png
 
 # Get random posts, communities, users or comments
-./ditto-cli get posts --random 5
-./ditto-cli get communities --random 10
-./ditto-cli get users --random 3
-./ditto-cli get comments --random 5
+./dist/ditto-cli get posts --random 5
+./dist/ditto-cli get communities --random 10
+./dist/ditto-cli get users --random 3
+./dist/ditto-cli get comments --random 5
 ```
 
 ## Development
@@ -109,7 +109,8 @@ go run . tui
 - `make run`: Run the TUI in development mode (`go run . tui`).
 - `make test`: Run unit tests.
 - `make lint`: Run the linter (`golangci-lint`).
-- `make build`: Compile the binary.
+- `make build`: Compile the binary into `dist/ditto-cli`.
+- `make clean`: Remove generated build artifacts from `dist/`.
 
 ### Quality Control
 
@@ -127,4 +128,4 @@ This project uses git hooks to ensure code quality:
 
 ## CI/CD
 
-There is currently no GitHub Actions workflow checked into this repository, so local `make test` and `make lint` are the primary verification steps for now.
+GitHub Actions runs test, lint, and build checks on pushes to `main` and on pull requests. Local `make test`, `make lint`, and `make build` should match that baseline before opening a PR.

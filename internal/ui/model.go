@@ -125,9 +125,10 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case statusMsg:
 		m.StatusMessage = string(msg)
 		var refreshCmd tea.Cmd
-		if m.State == StateFeed {
+		switch m.State {
+		case StateFeed:
 			refreshCmd = m.fetchFeed()
-		} else if m.State == StatePostDetail {
+		case StatePostDetail:
 			refreshCmd = m.fetchPostDetail(m.PostDetailModel.Post.ID)
 		}
 		return m, tea.Batch(refreshCmd, m.clearStatus())
@@ -176,11 +177,12 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case ":r", ":refresh":
 					prevState := m.State
 					m.State = StateLoading
-					if prevState == StateFeed {
+					switch prevState {
+					case StateFeed:
 						return m, m.fetchFeed()
-					} else if prevState == StateCommunities {
+					case StateCommunities:
 						return m, m.fetchCommunities()
-					} else if prevState == StatePostDetail {
+					case StatePostDetail:
 						return m, m.fetchPostDetail(m.PostDetailModel.Post.ID)
 					}
 					// Default fallback if we don't know what to refresh
@@ -209,7 +211,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if m.State == StateCommunities {
 						if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
 							m.EditCommunityModel.Title.SetValue(item.Community.Title)
-							m.EditCommunityModel.CommunityID.SetValue(item.Community.Name)
+							m.EditCommunityModel.CommunityID.SetValue(item.Name)
 							m.EditCommunityModel.Content.SetValue(item.Community.Description)
 							m.EditCommunityModel.CommunityID.Blur()
 							m.EditCommunityModel.Title.Focus()
@@ -220,9 +222,10 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case ":random":
 					prevState := m.State
 					m.State = StateLoading
-					if prevState == StateFeed {
+					switch prevState {
+					case StateFeed:
 						return m, m.fetchRandomPosts()
-					} else if prevState == StateCommunities {
+					case StateCommunities:
 						return m, m.fetchRandomCommunities()
 					}
 					m.State = prevState

@@ -133,7 +133,9 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 		}
 		return fmt.Errorf("do request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if c.Logger != nil {
 		c.Logger.Printf("<-- %d %s (%v)", resp.StatusCode, method, duration)
@@ -490,7 +492,9 @@ func (c *Client) UploadMedia(targetID string, targetType int, filePath string) e
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
@@ -524,7 +528,9 @@ func (c *Client) UploadMedia(targetID string, targetType int, filePath string) e
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("upload failed: %d", resp.StatusCode)
@@ -547,7 +553,9 @@ func (c *Client) DownloadMedia(mediaID, outputPath string) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("download failed: %d", resp.StatusCode)
@@ -557,7 +565,9 @@ func (c *Client) DownloadMedia(mediaID, outputPath string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() {
+		_ = out.Close()
+	}()
 
 	_, err = io.Copy(out, resp.Body)
 	return err

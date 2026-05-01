@@ -45,22 +45,24 @@ func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
 		switch msg.String() {
 		case "tab", "shift+tab", "up", "down":
 			m.Focused = (m.Focused + 1) % 4
-			if m.Focused == 0 {
+			switch m.Focused {
+			case 0:
 				m.Username.Focus()
 				m.Password.Blur()
-			} else if m.Focused == 1 {
+			case 1:
 				m.Username.Blur()
 				m.Password.Focus()
-			} else {
+			default:
 				m.Username.Blur()
 				m.Password.Blur()
 			}
 		}
 	}
 
-	if m.Focused == 0 {
+	switch m.Focused {
+	case 0:
 		m.Username, cmd = m.Username.Update(msg)
-	} else if m.Focused == 1 {
+	case 1:
 		m.Password, cmd = m.Password.Update(msg)
 	}
 

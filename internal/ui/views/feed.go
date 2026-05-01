@@ -17,12 +17,12 @@ type PostItem struct {
 func (i PostItem) Title() string { return i.Post.Title }
 func (i PostItem) Description() string {
 	return fmt.Sprintf("u/%s in c/%s • ↑↓ %d • 💬 %d",
-		i.Post.Author.Username,
-		i.Post.Community.Name,
-		i.Post.Scores.VoteScore,
-		i.Post.Scores.CommentCount)
+		i.Author.Username,
+		i.Community.Name,
+		i.Scores.VoteScore,
+		i.Scores.CommentCount)
 }
-func (i PostItem) FilterValue() string { return i.Post.Title + " " + i.Post.Author.Username }
+func (i PostItem) FilterValue() string { return i.Post.Title + " " + i.Author.Username }
 
 type itemDelegate struct {
 	Theme lipgloss.Style // Selected style
@@ -44,7 +44,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		title = d.Theme.Render(i.Title())
 	}
 
-	fmt.Fprintf(w, "  %s\n  %s", title, desc)
+	_, _ = fmt.Fprintf(w, "  %s\n  %s", title, desc)
 }
 
 type FeedModel struct {
