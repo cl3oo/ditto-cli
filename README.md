@@ -110,7 +110,25 @@ go run . tui
 - `make test`: Run unit tests.
 - `make lint`: Run the linter (`golangci-lint`).
 - `make build`: Compile the binary into `dist/ditto-cli`.
+- `make smoke`: Run a product smoke test for register, community creation, post creation, feed reads, join, and vote flows against a live Ditto API.
 - `make clean`: Remove generated build artifacts from `dist/`.
+
+### Smoke Testing Against a Live API
+
+`make smoke` uses `scripts/smoke.sh` and expects a reachable Ditto API. By default it targets `http://localhost:9001/api/v1`, creates two disposable users in an isolated temporary config directory, then exercises the core CLI journey end-to-end.
+
+```bash
+# Use the default local API
+make smoke
+
+# Or point the smoke test at another environment
+DITTO_API_URL=https://ditto.example.com/api/v1 make smoke
+```
+
+Useful overrides:
+
+- `DITTO_SMOKE_BIN` to point at a custom built binary.
+- `DITTO_SMOKE_USER_ONE`, `DITTO_SMOKE_USER_TWO`, `DITTO_SMOKE_EMAIL_ONE`, `DITTO_SMOKE_EMAIL_TWO` if you need deterministic test identities.
 
 ### Quality Control
 
@@ -128,4 +146,4 @@ This project uses git hooks to ensure code quality:
 
 ## CI/CD
 
-GitHub Actions runs test, lint, and build checks on pushes to `main` and on pull requests. Local `make test`, `make lint`, and `make build` should match that baseline before opening a PR.
+GitHub Actions runs test, lint, and build checks on pushes to `main` and on pull requests. Local `make test`, `make lint`, and `make build` should match that baseline before opening a PR. For live-environment validation, `make smoke` provides a repeatable product-level check outside the default CI matrix.
