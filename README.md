@@ -52,6 +52,9 @@ While in the TUI, press `:` to enter command mode:
 | `:edit` | Edit the current post or community |
 | `:delete` | Delete the current post or community |
 | `:random` | Fetch 10 random posts or communities |
+| `:follow` | Follow/Unfollow the current post author |
+| `:following` | List users you follow |
+| `:joined` | List communities you joined |
 | `:delete-comment <id>` | Delete a specific comment by ID |
 | `:settings` | Edit your user profile (avatar) |
 | `:delete-account` | Permanently delete your account |

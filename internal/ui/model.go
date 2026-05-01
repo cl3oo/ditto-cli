@@ -199,6 +199,16 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						return m, m.fetchRandomCommunities()
 					}
 					m.State = prevState
+				case ":follow":
+					if m.State == StatePostDetail {
+						return m, m.performToggleFollow(m.PostDetailModel.Post.Author.ID)
+					}
+				case ":following":
+					m.State = StateLoading
+					return m, m.fetchFollowedUsers()
+				case ":joined":
+					m.State = StateLoading
+					return m, m.fetchJoinedCommunities()
 				case ":delete-comment":
 					if m.State == StatePostDetail && len(parts) > 1 {
 						return m, m.performDeleteComment(parts[1])
@@ -388,6 +398,11 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.CommunityModel.SetCommunities(msg)
 		return m, nil
 
+	case usersMsg:
+		m.State = StateCommunities
+		m.CommunityModel.SetUsers(msg)
+		return m, nil
+
 	case postDetailMsg:
 		m.State = StatePostDetail
 		m.PostDetailModel.SetContent(msg.post, msg.comments)
@@ -471,6 +486,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 type feedMsg []types.Post
 type communitiesMsg []types.Community
+type usersMsg []types.User
 type postDetailMsg struct {
 	post     types.Post
 	comments []types.Comment
@@ -722,6 +738,36 @@ func (m MainModel) fetchRandomCommunities() tea.Cmd {
 			return errorMsg(err)
 		}
 		return communitiesMsg(communities)
+	}
+}
+
+func (m MainModel) fetchFollowedUsers() tea.Cmd {
+	return func() tea.Msg {
+		users, err := m.Client.GetFollowedUsers()
+		if err != nil {
+			return errorMsg(err)
+		}
+		return usersMsg(users)
+	}
+}
+
+func (m MainModel) fetchJoinedCommunities() tea.Cmd {
+	return func() tea.Msg {
+		communities, err := m.Client.GetJoinedCommunities()
+		if err != nil {
+			return errorMsg(err)
+		}
+		return communitiesMsg(communities)
+	}
+}
+
+func (m MainModel) performToggleFollow(userID string) tea.Cmd {
+	return func() tea.Msg {
+		err := m.Client.ToggleFollow(userID)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return statusMsg("Toggle follow success")
 	}
 }
 

@@ -409,3 +409,39 @@ func (c *Client) GetRandomUsers(num int) ([]types.User, error) {
 	err := c.Request("GET", fmt.Sprintf("/users/random?num=%d", num), nil, &res)
 	return res.Data, err
 }
+
+func (c *Client) ToggleFollow(userID string) error {
+	return c.Request("POST", fmt.Sprintf("/users/%s/follow/", userID), nil, nil)
+}
+
+func (c *Client) CheckFollowStatus(userID string) (bool, error) {
+	var res struct {
+		Status bool `json:"status"`
+	}
+	err := c.Request("GET", fmt.Sprintf("/users/%s/check/", userID), nil, &res)
+	return res.Status, err
+}
+
+func (c *Client) GetFollowedUsers() ([]types.User, error) {
+	var res struct {
+		Data []types.User `json:"data"`
+	}
+	err := c.Request("GET", "/users/subed/", nil, &res)
+	return res.Data, err
+}
+
+func (c *Client) GetJoinedCommunities() ([]types.Community, error) {
+	var res struct {
+		Data []types.Community `json:"data"`
+	}
+	err := c.Request("GET", "/communities/subed/", nil, &res)
+	return res.Data, err
+}
+
+func (c *Client) CheckCommunityStatus(communityID string) (bool, error) {
+	var res struct {
+		Status bool `json:"status"`
+	}
+	err := c.Request("GET", fmt.Sprintf("/communities/%s/check/", communityID), nil, &res)
+	return res.Status, err
+}

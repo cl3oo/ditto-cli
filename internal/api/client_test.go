@@ -277,3 +277,41 @@ func TestClient_GetRandomPosts(t *testing.T) {
 		t.Errorf("Unexpected posts: %+v", posts)
 	}
 }
+
+func TestClient_CheckFollowStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status": true}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	status, err := client.CheckFollowStatus("u1")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if !status {
+		t.Error("Expected status true, got false")
+	}
+}
+
+func TestClient_GetJoinedCommunities(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data": [{"id": "c1", "name": "Joined"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	comms, err := client.GetJoinedCommunities()
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if len(comms) != 1 || comms[0].Name != "Joined" {
+		t.Errorf("Unexpected communities: %+v", comms)
+	}
+}

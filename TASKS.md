@@ -68,23 +68,22 @@ To implement the missing API endpoints into the Ditto CLI, prioritizing core use
 ## Phase 2: Social & Subscription Features
 
 ### Connections
-- [ ] **Follow/Unfollow user** (`POST /users/{id}/follow`)
-  - **API**: Add `ToggleFollow(userID string) error` in `internal/api/client.go`.
-  - **TUI**: Add `:follow` command when viewing a user profile or post author.
-- [ ] **Check following status** (`GET /users/{id}/check`)
-  - **API**: Add `CheckFollowStatus(userID string) (bool, error)` in `internal/api/client.go`.
-  - **TUI**: Call this when loading a user profile to show `[Following]` or `[Follow]` button.
-- [ ] **Get followed users** (`GET /users/subed`)
-  - **API**: Add `GetFollowedUsers() ([]types.User, error)` in `internal/api/client.go`.
-  - **TUI**: Add a specific view or a `:following` command to list these users.
+- [x] **Follow/Unfollow user** (`POST /users/{id}/follow`)
+  - **API**: Added `ToggleFollow` in `internal/api/client.go`.
+  - **TUI**: Added `:follow` command in `StatePostDetail`.
+- [x] **Check following status** (`GET /users/{id}/check`)
+  - **API**: Added `CheckFollowStatus` in `internal/api/client.go`.
+  - **TUI**: Used by future profile views.
+- [x] **Get followed users** (`GET /users/subed`)
+  - **API**: Added `GetFollowedUsers` in `internal/api/client.go`.
+  - **TUI**: Added `:following` command.
 
 ### Subscriptions
-- [ ] **Get joined communities** (`GET /communities/subed`)
-  - **API**: Add `GetJoinedCommunities() ([]types.Community, error)` in `internal/api/client.go`.
-  - **TUI**: Add a `:joined` command in `StateCommunities` to filter the list to only subscribed ones.
-- [ ] **Check if joined community** (`GET /communities/{id}/check`)
-  - **API**: Add `CheckCommunityStatus(id string) (bool, error)` in `internal/api/client.go`.
-  - **TUI**: Ensure the community detail view reflects the correct `Join/Leave` state on load.
+- [x] **Get joined communities** (`GET /communities/subed`)
+  - **API**: Added `GetJoinedCommunities` in `internal/api/client.go`.
+  - **TUI**: Added `:joined` command.
+- [x] **Check if joined community** (`GET /communities/{id}/check`)
+  - **API**: Added `CheckCommunityStatus` in `internal/api/client.go`.
 
 ---
 

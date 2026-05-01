@@ -18,6 +18,14 @@ func (i CommunityItem) Title() string       { return "c/" + i.Community.Name }
 func (i CommunityItem) Description() string { return fmt.Sprintf("%s • %d members", i.Community.Title, i.Community.Scores.SubCount) }
 func (i CommunityItem) FilterValue() string { return i.Community.Name + " " + i.Community.Title }
 
+type UserItem struct {
+	types.User
+}
+
+func (i UserItem) Title() string       { return "u/" + i.User.Username }
+func (i UserItem) Description() string { return "Followed user" }
+func (i UserItem) FilterValue() string { return i.User.Username }
+
 type communityDelegate struct {
 	Theme lipgloss.Style
 }
@@ -26,16 +34,23 @@ func (d communityDelegate) Height() int                               { return 2
 func (d communityDelegate) Spacing() int                              { return 1 }
 func (d communityDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	i, ok := listItem.(CommunityItem)
-	if !ok {
+	var titleStr, descStr string
+
+	if i, ok := listItem.(CommunityItem); ok {
+		titleStr = i.Title()
+		descStr = i.Description()
+	} else if i, ok := listItem.(UserItem); ok {
+		titleStr = i.Title()
+		descStr = i.Description()
+	} else {
 		return
 	}
 
-	title := lipgloss.NewStyle().Bold(true).Render(i.Title())
-	desc := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(i.Description())
+	title := lipgloss.NewStyle().Bold(true).Render(titleStr)
+	desc := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(descStr)
 
 	if index == m.Index() {
-		title = d.Theme.Render(i.Title())
+		title = d.Theme.Render(titleStr)
 	}
 
 	fmt.Fprintf(w, "  %s\n  %s", title, desc)
@@ -80,6 +95,15 @@ func (m *CommunityModel) SetCommunities(communities []types.Community) {
 	items := make([]list.Item, len(communities))
 	for i, c := range communities {
 		items[i] = CommunityItem{Community: c}
+	}
+	m.List.SetItems(items)
+	m.Loaded = true
+}
+
+func (m *CommunityModel) SetUsers(users []types.User) {
+	items := make([]list.Item, len(users))
+	for i, u := range users {
+		items[i] = UserItem{User: u}
 	}
 	m.List.SetItems(items)
 	m.Loaded = true

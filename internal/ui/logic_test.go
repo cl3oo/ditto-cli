@@ -20,6 +20,8 @@ func TestMainModel_CommandTransitions(t *testing.T) {
 		{"Communities command", ":communities", StateLoading},
 		{"Settings command", ":settings", StateProfileSettings},
 		{"New post command", ":new", StateCreatePost},
+		{"Following command", ":following", StateLoading},
+		{"Joined command", ":joined", StateLoading},
 	}
 
 	for _, tt := range tests {
