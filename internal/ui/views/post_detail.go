@@ -197,11 +197,13 @@ func (m *PostDetailModel) render() {
 
 	s.WriteString(lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241")).
-		Render(fmt.Sprintf("u/%s (u/%s) in c/%s (c/%s) • ↑↓ %d • 💬 %d",
+		Render(fmt.Sprintf("u/%s (u/%s) in c/%s (c/%s) • ↑↓ %d • 💬 %d • 💎 %d • %s",
 			m.Post.Author.Username, m.Post.Author.ID,
 			m.Post.Community.Name, m.Post.Community.ID,
 			m.Post.Scores.VoteScore,
-			m.Post.Scores.CommentCount)) + "\n\n")
+			m.Post.Scores.CommentCount,
+			m.Post.Scores.AwardCount,
+			RelativeTime(m.Post.CreatedAt))) + "\n\n")
 
 	// Render Post Content with Glamour
 	var renderer *glamour.TermRenderer
@@ -245,10 +247,11 @@ func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) st
 		contentStyle = contentStyle.Background(lipgloss.Color("235"))
 	}
 
-	_, _ = fmt.Fprintf(&s, "%s %s %s\n",
+	_, _ = fmt.Fprintf(&s, "%s %s • %s • %s\n",
 		indent,
 		authorStyle.Render("u/"+c.Author.Username),
-		scoreStyle.Render(fmt.Sprintf("↑↓ %d", c.Scores.VoteScore)))
+		scoreStyle.Render(fmt.Sprintf("↑↓ %d", c.Scores.VoteScore)),
+		scoreStyle.Render(RelativeTime(c.CreatedAt)))
 
 	// Wrap comment content
 	s.WriteString(contentStyle.Render(c.Content) + "\n\n")

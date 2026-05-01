@@ -3,6 +3,7 @@ package views
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -24,11 +25,25 @@ func (i PostItem) Description() string {
 }
 func (i PostItem) FilterValue() string { return i.Post.Title + " " + i.Author.Username }
 
+func RelativeTime(t time.Time) string {
+	d := time.Since(t)
+	if d < time.Minute {
+		return "just now"
+	}
+	if d < time.Hour {
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	}
+	if d < 24*time.Hour {
+		return fmt.Sprintf("%dh ago", int(d.Hours()))
+	}
+	return t.Format("Jan 02")
+}
+
 type itemDelegate struct {
 	Theme lipgloss.Style // Selected style
 }
 
-func (d itemDelegate) Height() int                               { return 2 }
+func (d itemDelegate) Height() int                               { return 5 }
 func (d itemDelegate) Spacing() int                              { return 1 }
 func (d itemDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
@@ -37,14 +52,43 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		return
 	}
 
-	title := lipgloss.NewStyle().Bold(true).Render(i.Title())
-	desc := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(i.Description())
+	isSelected := index == m.Index()
 
-	if index == m.Index() {
-		title = d.Theme.Render(i.Title())
+	cardStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("238")).
+		Padding(0, 1).
+		Width(max(20, m.Width()-4))
+
+	if isSelected {
+		cardStyle = cardStyle.BorderForeground(lipgloss.Color("170"))
 	}
 
-	_, _ = fmt.Fprintf(w, "  %s\n  %s", title, desc)
+	header := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+		fmt.Sprintf("u/%s in c/%s • %s", i.Author.Username, i.Community.Name, RelativeTime(i.CreatedAt)),
+	)
+
+	titleStyle := lipgloss.NewStyle().Bold(true)
+	if isSelected {
+		titleStyle = titleStyle.Foreground(lipgloss.Color("170"))
+	}
+	title := titleStyle.Render(i.Title())
+
+	stats := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+		fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d",
+			i.Scores.VoteScore,
+			i.Scores.CommentCount,
+			i.Scores.AwardCount),
+	)
+
+	content := lipgloss.JoinVertical(lipgloss.Left,
+		header,
+		title,
+		"",
+		stats,
+	)
+
+	_, _ = fmt.Fprint(w, cardStyle.Render(content))
 }
 
 type FeedModel struct {
