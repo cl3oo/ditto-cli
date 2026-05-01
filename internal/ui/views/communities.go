@@ -95,7 +95,7 @@ func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem
 		stats,
 	)
 
-	fmt.Fprint(w, cardStyle.Render(content))
+	_, _ = fmt.Fprint(w, cardStyle.Render(content))
 }
 
 type CommunityModel struct {

@@ -88,7 +88,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		stats,
 	)
 
-	fmt.Fprint(w, cardStyle.Render(content))
+	_, _ = fmt.Fprint(w, cardStyle.Render(content))
 }
 
 type FeedModel struct {
