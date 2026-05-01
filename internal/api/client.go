@@ -44,22 +44,31 @@ func NewClient(baseURL string) *Client {
 }
 
 func NewClientWithLogger(baseURL string, logger *log.Logger) *Client {
-	return &Client{
+	c := &Client{
 		BaseURL: baseURL,
-		HTTPClient: &http.Client{
-			Timeout: 15 * time.Second,
-			CheckRedirect: func(req *http.Request, via []*http.Request) error {
-				if logger != nil {
-					logger.Printf("Redirecting to: %s", req.URL)
-				}
-				if len(via) >= 10 {
-					return errors.New("stopped after 10 redirects")
-				}
-				return nil
-			},
-		},
-		Logger: logger,
+		Logger:  logger,
 	}
+	c.HTTPClient = &http.Client{
+		Timeout: 15 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if logger != nil {
+				logger.Printf("Redirecting to: %s", req.URL)
+			}
+			if len(via) >= 10 {
+				return errors.New("stopped after 10 redirects")
+			}
+			// Copy headers from the last request (including Authorization)
+			if len(via) > 0 {
+				for key, val := range via[len(via)-1].Header {
+					if key == "Authorization" || key == "Content-Type" {
+						req.Header[key] = val
+					}
+				}
+			}
+			return nil
+		},
+	}
+	return c
 }
 
 func (c *Client) SetToken(token string) {
@@ -221,7 +230,8 @@ func (c *Client) GetTrendingPosts() ([]types.Post, error) {
         var res struct {
                 Data []types.Post `json:"data"`
         }
-        err := c.Request("GET", "/posts/", nil, &res)
+        err := c.Request("GET", "/posts", nil, &res)
+
         return res.Data, err
 }
 
@@ -229,23 +239,24 @@ func (c *Client) GetCommunities() ([]types.Community, error) {
         var res struct {
                 Data []types.Community `json:"data"`
         }
-        err := c.Request("GET", "/communities/", nil, &res)
+        err := c.Request("GET", "/communities", nil, &res)
+
         return res.Data, err
 }
 
 func (c *Client) Vote(targetID string, targetType int, value int) error {
-        path := fmt.Sprintf("/votes/%s/?type=%d&value=%d", targetID, targetType, value)
+        path := fmt.Sprintf("/votes/%s?type=%d&value=%d", targetID, targetType, value)
         return c.Request("POST", path, nil, nil)
 }
 
 func (c *Client) CreateComment(targetID string, targetType int, content string) error {
         body := map[string]string{"content": content}
-        path := fmt.Sprintf("/comments/%s/?type=%d", targetID, targetType)
+        path := fmt.Sprintf("/comments/%s?type=%d", targetID, targetType)
         return c.Request("POST", path, body, nil)
 }
 
 func (c *Client) JoinCommunity(communityID string) error {
-        return c.Request("POST", fmt.Sprintf("/communities/%s/join/", communityID), nil, nil)
+        return c.Request("POST", fmt.Sprintf("/communities/%s/join", communityID), nil, nil)
 }
 
 func (c *Client) CreateCommunity(name, title, description string) error {
@@ -254,7 +265,7 @@ func (c *Client) CreateCommunity(name, title, description string) error {
                 "title":       title,
                 "description": description,
         }
-        return c.Request("POST", "/communities/", body, nil)
+        return c.Request("POST", "/communities", body, nil)
 }
 
 func (c *Client) CreatePost(title, content, communityName string) error {
@@ -279,7 +290,7 @@ func (c *Client) CreatePost(title, content, communityName string) error {
 		"title":   title,
 		"content": content,
 	}
-	path := fmt.Sprintf("/posts/%s/?type=1", communityID)
+	path := fmt.Sprintf("/posts/%s?type=1", communityID)
 	return c.Request("POST", path, body, nil)
 }
 
@@ -288,13 +299,13 @@ func (c *Client) GetFeed() ([]types.Post, error) {
 	var res struct {
 		Data []types.Post `json:"data"`
 	}
-	err := c.Request("GET", "/feed/", nil, &res)
+	err := c.Request("GET", "/feed", nil, &res)
 	return res.Data, err
 }
 
 func (c *Client) GetPost(id string) (*types.Post, error) {
 	var post types.Post
-	err := c.Request("GET", fmt.Sprintf("/posts/%s/", id), nil, &post)
+	err := c.Request("GET", fmt.Sprintf("/posts/%s", id), nil, &post)
 	return &post, err
 }
 
@@ -308,7 +319,7 @@ func (c *Client) GetComments(postID string) ([]types.Comment, error) {
 
 func (c *Client) GetMe() (*types.User, error) {
 	var user types.User
-	err := c.Request("GET", "/users/me/", nil, &user)
+	err := c.Request("GET", "/users/me", nil, &user)
 	return &user, err
 }
 
@@ -317,7 +328,7 @@ func (c *Client) GetPostsFiltered(filter map[string]interface{}) ([]types.Post, 
 	if err != nil {
 		return nil, err
 	}
-	path := fmt.Sprintf("/posts/?filter=%s", url.QueryEscape(string(filterJSON)))
+	path := fmt.Sprintf("/posts?filter=%s", url.QueryEscape(string(filterJSON)))
 	var res struct {
 		Data []types.Post `json:"data"`
 	}
@@ -336,13 +347,13 @@ func (c *Client) SearchCommunities(query string) ([]types.Community, error) {
 
 func (c *Client) GetUser(id string) (*types.User, error) {
 	var user types.User
-	err := c.Request("GET", fmt.Sprintf("/users/%s/", id), nil, &user)
+	err := c.Request("GET", fmt.Sprintf("/users/%s", id), nil, &user)
 	return &user, err
 }
 
 func (c *Client) GetCommunity(id string) (*types.Community, error) {
 	var community types.Community
-	err := c.Request("GET", fmt.Sprintf("/communities/%s/", id), nil, &community)
+	err := c.Request("GET", fmt.Sprintf("/communities/%s", id), nil, &community)
 	return &community, err
 }
 
@@ -350,16 +361,16 @@ func (c *Client) GetTrendingCommunities() ([]types.Community, error) {
 	var res struct {
 		Data []types.Community `json:"data"`
 	}
-	err := c.Request("GET", "/communities/trending/", nil, &res)
+	err := c.Request("GET", "/communities/trending", nil, &res)
 	return res.Data, err
 }
 
 func (c *Client) UpdateCommunity(id string, data map[string]interface{}) error {
-	return c.Request("PUT", fmt.Sprintf("/communities/%s/", id), data, nil)
+	return c.Request("PUT", fmt.Sprintf("/communities/%s", id), data, nil)
 }
 
 func (c *Client) DeleteCommunity(id string) error {
-	return c.Request("DELETE", fmt.Sprintf("/communities/%s/", id), nil, nil)
+	return c.Request("DELETE", fmt.Sprintf("/communities/%s", id), nil, nil)
 }
 
 func (c *Client) GetRandomCommunities(num int) ([]types.Community, error) {
@@ -375,11 +386,11 @@ func (c *Client) UpdatePost(id, title, content string) error {
 		"title":   title,
 		"content": content,
 	}
-	return c.Request("PUT", fmt.Sprintf("/posts/%s/", id), body, nil)
+	return c.Request("PUT", fmt.Sprintf("/posts/%s", id), body, nil)
 }
 
 func (c *Client) DeletePost(id string) error {
-	return c.Request("DELETE", fmt.Sprintf("/posts/%s/", id), nil, nil)
+	return c.Request("DELETE", fmt.Sprintf("/posts/%s", id), nil, nil)
 }
 
 func (c *Client) GetRandomPosts(num int) ([]types.Post, error) {
@@ -391,7 +402,7 @@ func (c *Client) GetRandomPosts(num int) ([]types.Post, error) {
 }
 
 func (c *Client) DeleteComment(id string) error {
-	return c.Request("DELETE", fmt.Sprintf("/comments/%s/", id), nil, nil)
+	return c.Request("DELETE", fmt.Sprintf("/comments/%s", id), nil, nil)
 }
 
 func (c *Client) GetRandomComments(num int) ([]types.Comment, error) {
@@ -403,11 +414,11 @@ func (c *Client) GetRandomComments(num int) ([]types.Comment, error) {
 }
 
 func (c *Client) UpdateUser(id string, data map[string]interface{}) error {
-	return c.Request("PUT", fmt.Sprintf("/users/%s/", id), data, nil)
+	return c.Request("PUT", fmt.Sprintf("/users/%s", id), data, nil)
 }
 
 func (c *Client) DeleteUser(id string) error {
-	return c.Request("DELETE", fmt.Sprintf("/users/%s/", id), nil, nil)
+	return c.Request("DELETE", fmt.Sprintf("/users/%s", id), nil, nil)
 }
 
 func (c *Client) GetRandomUsers(num int) ([]types.User, error) {
@@ -419,14 +430,14 @@ func (c *Client) GetRandomUsers(num int) ([]types.User, error) {
 }
 
 func (c *Client) ToggleFollow(userID string) error {
-	return c.Request("POST", fmt.Sprintf("/users/%s/follow/", userID), nil, nil)
+	return c.Request("POST", fmt.Sprintf("/users/%s/follow", userID), nil, nil)
 }
 
 func (c *Client) CheckFollowStatus(userID string) (bool, error) {
 	var res struct {
 		Status bool `json:"status"`
 	}
-	err := c.Request("GET", fmt.Sprintf("/users/%s/check/", userID), nil, &res)
+	err := c.Request("GET", fmt.Sprintf("/users/%s/check", userID), nil, &res)
 	return res.Status, err
 }
 
@@ -434,7 +445,7 @@ func (c *Client) GetFollowedUsers() ([]types.User, error) {
 	var res struct {
 		Data []types.User `json:"data"`
 	}
-	err := c.Request("GET", "/users/subed/", nil, &res)
+	err := c.Request("GET", "/users/subed", nil, &res)
 	return res.Data, err
 }
 
@@ -442,7 +453,7 @@ func (c *Client) GetJoinedCommunities() ([]types.Community, error) {
 	var res struct {
 		Data []types.Community `json:"data"`
 	}
-	err := c.Request("GET", "/communities/subed/", nil, &res)
+	err := c.Request("GET", "/communities/subed", nil, &res)
 	return res.Data, err
 }
 
@@ -450,34 +461,34 @@ func (c *Client) CheckCommunityStatus(communityID string) (bool, error) {
 	var res struct {
 		Status bool `json:"status"`
 	}
-	err := c.Request("GET", fmt.Sprintf("/communities/%s/check/", communityID), nil, &res)
+	err := c.Request("GET", fmt.Sprintf("/communities/%s/check", communityID), nil, &res)
 	return res.Status, err
 }
 
 func (c *Client) BanUser(communityID, userID string) error {
-	return c.Request("POST", fmt.Sprintf("/communities/%s/ban/%s/", communityID, userID), nil, nil)
+	return c.Request("POST", fmt.Sprintf("/communities/%s/ban/%s", communityID, userID), nil, nil)
 }
 
 func (c *Client) AddModerator(communityID, userID string) error {
-	return c.Request("POST", fmt.Sprintf("/communities/%s/mods/%s/", communityID, userID), nil, nil)
+	return c.Request("POST", fmt.Sprintf("/communities/%s/mods/%s", communityID, userID), nil, nil)
 }
 
 func (c *Client) UpdateModerator(communityID, userID string, permissions map[string]interface{}) error {
-	return c.Request("PUT", fmt.Sprintf("/communities/%s/mods/%s/", communityID, userID), permissions, nil)
+	return c.Request("PUT", fmt.Sprintf("/communities/%s/mods/%s", communityID, userID), permissions, nil)
 }
 
 func (c *Client) RemoveModerator(communityID, userID string) error {
-	return c.Request("DELETE", fmt.Sprintf("/communities/%s/mods/%s/", communityID, userID), nil, nil)
+	return c.Request("DELETE", fmt.Sprintf("/communities/%s/mods/%s", communityID, userID), nil, nil)
 }
 
 func (c *Client) LockPost(postID string, lock bool) error {
-	path := fmt.Sprintf("/posts/%s/lock/?lock=%v", postID, lock)
+	path := fmt.Sprintf("/posts/%s/lock?lock=%v", postID, lock)
 	return c.Request("POST", path, nil, nil)
 }
 
 func (c *Client) ModDeletePost(postID, reason string) error {
 	body := map[string]string{"reason": reason}
-	return c.Request("DELETE", fmt.Sprintf("/posts/%s/mod/", postID), body, nil)
+	return c.Request("DELETE", fmt.Sprintf("/posts/%s/mod", postID), body, nil)
 }
 
 func (c *Client) UploadMedia(targetID string, targetType int, filePath string) error {
@@ -560,7 +571,7 @@ func (c *Client) DownloadMedia(mediaID, outputPath string) error {
 
 func (c *Client) GetWallet() (*types.Wallet, error) {
 	var wallet types.Wallet
-	err := c.Request("GET", "/users/wallet/", nil, &wallet)
+	err := c.Request("GET", "/users/wallet", nil, &wallet)
 	return &wallet, err
 }
 
@@ -570,7 +581,7 @@ func (c *Client) GiveAward(targetID string, targetType int, awardID string) erro
 }
 
 func (c *Client) RemoveAward(awardID string) error {
-	return c.Request("DELETE", fmt.Sprintf("/awards/%s/", awardID), nil, nil)
+	return c.Request("DELETE", fmt.Sprintf("/awards/%s", awardID), nil, nil)
 }
 
 func (c *Client) ReportResource(targetID string, targetType int, reason string) error {
