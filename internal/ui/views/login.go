@@ -1,16 +1,19 @@
 package views
 
 import (
+	"fmt"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
 type LoginModel struct {
-	Username textinput.Model
-	Password textinput.Model
-	Focused  int // 0 for username, 1 for password, 2 for submit, 3 for register
-	Error    string
+	Username     textinput.Model
+	Password     textinput.Model
+	Focused      int // 0 for username, 1 for password, 2 for submit, 3 for register
+	Error        string
+	SuccessToken string
+	LoggedIn     bool
 }
 
 func NewLoginModel() LoginModel {
@@ -67,13 +70,28 @@ func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
 func (m LoginModel) View() string {
 	var s string
 
-	s += lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62")).Render("Login to Ditto") + "\n\n"
-	s += m.Username.View() + "\n"
-	s += m.Password.View() + "\n\n"
+	title := "Login to Ditto"
+	if m.LoggedIn {
+		title = "Successfully Authenticated! ✨"
+	}
+	s += lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62")).Render(title) + "\n\n"
+	
+	if !m.LoggedIn {
+		s += m.Username.View() + "\n"
+		s += m.Password.View() + "\n\n"
+	} else {
+		s += lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Render("Welcome back! Here is your token:") + "\n"
+		s += lipgloss.NewStyle().Italic(true).Faint(true).Render(m.SuccessToken) + "\n\n"
+	}
 
-	submitBtn := "[ Submit ]"
+	submitLabel := "[ Submit ]"
+	if m.LoggedIn {
+		submitLabel = "[ Save & Continue ]"
+	}
+
+	submitBtn := submitLabel
 	if m.Focused == 2 {
-		submitBtn = lipgloss.NewStyle().Foreground(lipgloss.Color("170")).Bold(true).Render("[ Submit ]")
+		submitBtn = lipgloss.NewStyle().Foreground(lipgloss.Color("170")).Bold(true).Render(submitLabel)
 	}
 
 	registerBtn := "[ Register New Account ]"
@@ -84,7 +102,9 @@ func (m LoginModel) View() string {
 	s += submitBtn + "  " + registerBtn + "\n"
 
 	if m.Error != "" {
-		s += "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render(m.Error)
+		cuteMsg := "Oopsie! Something went wrong... (´･ω･`)"
+		s += "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("211")).Render(cuteMsg) + "\n"
+		s += lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render(fmt.Sprintf("Error: %s", m.Error))
 	}
 
 	return lipgloss.NewStyle().Padding(1, 2).Render(s)

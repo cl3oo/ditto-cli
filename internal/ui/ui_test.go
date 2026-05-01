@@ -42,10 +42,11 @@ func TestMainModel_Update_LoginSuccess(t *testing.T) {
 	// Simulate login success message
 	newModel, _ := m.Update(loginSuccessMsg("new-token"))
 	updatedModel := newModel.(MainModel)
-	
-	if updatedModel.State != StateFeed {
-		t.Errorf("Expected state StateFeed after loginSuccessMsg, got %v", updatedModel.State)
+
+	if updatedModel.State != StateLogin {
+		t.Errorf("Expected state StateLogin after loginSuccessMsg, got %v", updatedModel.State)
 	}
+
 	if updatedModel.Client.Token != "new-token" {
 		t.Errorf("Expected client token to be updated")
 	}

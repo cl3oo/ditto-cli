@@ -391,6 +391,10 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case msg.String() == "enter":
 			if m.State == StateLogin {
 				if m.LoginModel.Focused == 2 {
+					if m.LoginModel.LoggedIn {
+						m.State = StateLoading
+						return m, tea.Batch(m.fetchFeed(), m.fetchMe(), m.fetchWallet())
+					}
 					m.State = StateLoading
 					return m, m.performLogin()
 				}
@@ -477,7 +481,6 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case loginSuccessMsg:
-		m.State = StateFeed
 		token := string(msg)
 		m.Client.SetToken(token)
 		
@@ -486,12 +489,17 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.errorCmd(fmt.Errorf("failed to save config: %w", err))
 		}
 		
+		m.LoginModel.LoggedIn = true
+		m.LoginModel.SuccessToken = token
+		m.LoginModel.Error = ""
+		m.State = StateLogin // STAY on login screen
+
 		displayToken := token
 		if len(token) > 8 {
 			displayToken = token[:8] + "..."
 		}
-		m.StatusMessage = fmt.Sprintf("Logged in! Token: %s", displayToken)
-		return m, tea.Batch(m.fetchFeed(), m.fetchMe(), m.fetchWallet(), m.clearStatus())
+		m.StatusMessage = fmt.Sprintf("Successfully logged in! Token: %s", displayToken)
+		return m, m.clearStatus()
 
 	case meMsg:
 		m.Me = (*types.User)(msg)
@@ -528,6 +536,12 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.StatusMessage = "Some profile data failed to load (Unauthorized)"
 			}
 			return m, m.clearStatus()
+		}
+		if m.State == StateLogin {
+			m.LoginModel.Error = msg.Error()
+		}
+		if m.State == StateRegister {
+			m.RegisterModel.Error = msg.Error()
 		}
 		m.StatusMessage = fmt.Sprintf("Error: %v", msg)
 		if m.State == StateLoading {
