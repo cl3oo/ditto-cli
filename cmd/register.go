@@ -28,7 +28,9 @@ var registerCmd = &cobra.Command{
 		}
 
 		cfg.Token = token
-		cfg.BaseURL = baseURL
+		if baseURL != "" {
+			cfg.BaseURL = baseURL
+		}
 		if err := cfg.Save(); err != nil {
 			return fmt.Errorf("error saving config: %w", err)
 		}

@@ -154,6 +154,15 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 		c.Logger.Printf("<-- %d %s (%v)", resp.StatusCode, method, duration)
 	}
 
+	bodyBits, _ := io.ReadAll(resp.Body)
+	if c.Logger != nil && len(bodyBits) > 0 {
+		if resp.StatusCode >= 400 {
+			c.Logger.Printf("Error Body: %s", string(bodyBits))
+		} else {
+			c.Logger.Printf("Response Body: %s", string(bodyBits))
+		}
+	}
+
 	if resp.StatusCode >= 400 {
 		if resp.StatusCode == http.StatusUnauthorized {
 			return ErrUnauthorized
@@ -163,11 +172,6 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 		}
 
 		var errResp types.ErrorResponse
-		bodyBits, _ := io.ReadAll(resp.Body)
-		if c.Logger != nil && len(bodyBits) > 0 {
-			c.Logger.Printf("Error Body: %s", string(bodyBits))
-		}
-
 		if err := json.Unmarshal(bodyBits, &errResp); err == nil && errResp.Error != "" {
 			return fmt.Errorf("API error (%d): %s", resp.StatusCode, errResp.Error)
 		}
@@ -175,10 +179,6 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 	}
 
 	if target != nil {
-		bodyBits, _ := io.ReadAll(resp.Body)
-		if c.Logger != nil && len(bodyBits) > 0 {
-			c.Logger.Printf("Response Body: %s", string(bodyBits))
-		}
 		if err := json.Unmarshal(bodyBits, target); err != nil {
 			return fmt.Errorf("decode response: %w", err)
 		}

@@ -103,6 +103,12 @@ func (m MainModel) clearStatus() tea.Cmd {
 	})
 }
 
+func (m MainModel) errorCmd(err error) tea.Cmd {
+	return func() tea.Msg {
+		return errorMsg(err)
+	}
+}
+
 func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
@@ -468,7 +474,9 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Client.SetToken(token)
 		
 		// Persist token
-		m.Config.UpdateToken(token)
+		if err := m.Config.UpdateToken(token); err != nil {
+			return m, m.errorCmd(fmt.Errorf("failed to save config: %w", err))
+		}
 		
 		displayToken := token
 		if len(token) > 8 {

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -116,6 +117,11 @@ func (c *Config) Save() error {
 	path, err := GetConfigPath()
 	if err != nil {
 		return err
+	}
+
+	// For debugging token persistence
+	if os.Getenv("DEBUG_CONFIG") != "" {
+		fmt.Fprintf(os.Stderr, "Saving config to: %s\n", path)
 	}
 
 	f, err := os.Create(path)
