@@ -16,28 +16,39 @@ A powerful terminal-based user interface (TUI) for the Ditto social platform. Bu
 ### Prerequisites
 
 - [Go](https://go.dev/doc/install) 1.26.2 or higher (matches `go.mod`).
+- A reachable Ditto API, local or remote.
 
-### From Source
+### Quick start from source
 
 ```bash
-# Clone the repository
 git clone https://github.com/rfcku/ditto-cli.git
 cd ditto-cli
-
-# Build the binary
 make build
-
-# Launch the TUI
 ./dist/ditto-cli tui
+```
+
+### Install the CLI with Go
+
+```bash
+go install github.com/rfcku/ditto-cli@latest
+
+# Then run either mode
+ditto-cli tui
+ditto-cli get posts --random 5
 ```
 
 ### Environment Variables
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `DITTO_API_URL` | The URL of the Ditto API. | `http://localhost:9001/v1` |
+| `DITTO_API_URL` | Base API URL used by the CLI and TUI. | `http://localhost:9001/api/v1` |
 
 ## Usage
+
+Ditto CLI supports two workflows:
+
+- **TUI mode** for browsing, posting, moderation, and day-to-day navigation inside the terminal.
+- **CLI mode** for one-off actions, scripting, smoke tests, and quick API checks.
 
 ### TUI Commands
 
@@ -103,6 +114,16 @@ go run . tui
 ```
 
 ## Development
+
+### Contributor workflow
+
+```bash
+git clone https://github.com/rfcku/ditto-cli.git
+cd ditto-cli
+make test
+make lint
+make build
+```
 
 ### Key Commands
 
