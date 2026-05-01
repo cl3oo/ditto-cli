@@ -39,6 +39,7 @@ type KeyConfig struct {
 	Login       string `toml:"login"`
 	Feed        string `toml:"feed"`
 	Communities string `toml:"communities"`
+	Palette     string `toml:"palette"`
 }
 
 const DefaultBaseURL = "http://localhost:9001/api/v1"
@@ -84,6 +85,7 @@ func DefaultConfig() *Config {
 			Login:       ":L",
 			Feed:        ":F",
 			Communities: ":C",
+			Palette:     ":",
 		},
 	}
 }

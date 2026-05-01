@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rfcku/ditto-cli/internal/api"
 	"github.com/rfcku/ditto-cli/internal/config"
 )
@@ -176,5 +177,44 @@ func TestMainModel_RenderConfirmDialog(t *testing.T) {
 		if !strings.Contains(view, want) {
 			t.Fatalf("confirm dialog %q missing %q", view, want)
 		}
+	}
+}
+
+func TestMainModel_Update_CommandPalette(t *testing.T) {
+	cfg := config.DefaultConfig()
+	m := NewMainModel(cfg)
+	m.State = StateFeed
+	m.Width = 80
+	m.Height = 24
+
+	// 1. Open palette with ":"
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(":")})
+	updatedModel := newModel.(MainModel)
+
+	if updatedModel.State != StateCommandPalette {
+		t.Errorf("Expected state StateCommandPalette, got %v", updatedModel.State)
+	}
+
+	if updatedModel.PreviousState != StateFeed {
+		t.Errorf("Expected PreviousState StateFeed, got %v", updatedModel.PreviousState)
+	}
+
+	// 2. Select Feed (should already be first item) and press enter
+	newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updatedModel = newModel.(MainModel)
+
+	if updatedModel.State != StateLoading {
+		t.Errorf("Expected state StateLoading (fetching feed), got %v", updatedModel.State)
+	}
+
+	// 3. Test escape
+	m.State = StateCommunities
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune(":")})
+	updatedModel = newModel.(MainModel)
+	newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	updatedModel = newModel.(MainModel)
+
+	if updatedModel.State != StateCommunities {
+		t.Errorf("Expected state to return to StateCommunities, got %v", updatedModel.State)
 	}
 }
