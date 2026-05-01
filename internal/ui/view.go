@@ -58,6 +58,8 @@ func (m MainModel) View() string {
 		content = m.renderSelectionMenu()
 	case StateConfirm:
 		content = m.renderConfirmDialog()
+	case StateCommandPalette:
+		content = m.PaletteModel.View()
 	}
 	s.WriteString(content)
 
@@ -102,7 +104,7 @@ func (m MainModel) View() string {
 }
 
 func (m MainModel) renderFooterHelp() string {
-	global := []string{"/: cmd", "enter open", "q back", "? :man"}
+	global := []string{": palette", "enter open", "q back", "? :man"}
 	local := []string{}
 
 	switch m.State {

@@ -31,6 +31,7 @@ const (
 	StateProfileSettings
 	StateHelp
 	StateConfirm
+	StateCommandPalette
 )
 
 type ConfirmAction int
@@ -59,6 +60,7 @@ type ConfirmDialog struct {
 
 type MainModel struct {
 	State         State
+	PreviousState State
 	Client        *api.Client
 	Config        *config.Config
 	Theme         Theme
@@ -83,6 +85,7 @@ type MainModel struct {
 	EditCommunityModel views.CreatePostModel
 	SettingsModel      views.SettingsModel
 	HelpModel          views.HelpModel
+	PaletteModel       views.CommandPaletteModel
 	ConfirmDialog      ConfirmDialog
 }
 
@@ -104,6 +107,7 @@ func NewMainModel(cfg *config.Config) MainModel {
 		EditCommunityModel: views.NewCreatePostModel(),
 		SettingsModel:      views.NewSettingsModel(),
 		HelpModel:          views.NewHelpModel(),
+		PaletteModel:       views.NewCommandPaletteModel(),
 	}
 	m.Client.SetToken(cfg.Token)
 
@@ -113,7 +117,12 @@ func NewMainModel(cfg *config.Config) MainModel {
 	m.PostDetailModel.SetTheme(t)
 	m.HelpModel.SetTheme(t)
 	m.LoginModel.SetTheme(t)
+	m.RegisterModel.SetTheme(t)
 	m.CreatePostModel.SetTheme(t)
+	m.EditPostModel.SetTheme(t)
+	m.EditCommunityModel.SetTheme(t)
+	m.SettingsModel.SetTheme(t)
+	m.PaletteModel.SetTheme(t)
 
 	return m
 }
@@ -191,6 +200,17 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		if m.State == StateConfirm {
 			return m.handleConfirmKey(msg)
+		}
+
+		if m.State == StateCommandPalette {
+			return m.handlePaletteKey(msg)
+		}
+
+		if key.Matches(msg, m.Keys.Palette) {
+			m.PreviousState = m.State
+			m.State = StateCommandPalette
+			m.PaletteModel.SetSize(m.Width, m.Height)
+			return m, nil
 		}
 
 		// Handle command buffer first (prefix :)
@@ -469,11 +489,6 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if len(msg.String()) == 1 {
 				m.CommandBuffer += msg.String()
 			}
-			return m, nil
-		}
-
-		if msg.String() == ":" {
-			m.CommandBuffer = ":"
 			return m, nil
 		}
 
@@ -1093,6 +1108,48 @@ func (m MainModel) handleConfirmKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func (m MainModel) handlePaletteKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if msg.String() == "esc" {
+		m.State = m.PreviousState
+		return m, nil
+	}
+
+	if msg.String() == "enter" {
+		item, ok := m.PaletteModel.List.SelectedItem().(views.CommandItem)
+		if !ok {
+			return m, nil
+		}
+
+		m.State = m.PreviousState // Close palette before executing
+
+		switch item.Action {
+		case views.ActionGoFeed:
+			m.State = StateLoading
+			return m, m.fetchFeed()
+		case views.ActionGoCommunities:
+			m.State = StateLoading
+			return m, m.fetchCommunities()
+		case views.ActionGoLogin:
+			m.State = StateLogin
+		case views.ActionGoRegister:
+			m.State = StateRegister
+		case views.ActionCreatePost:
+			m.State = StateCreatePost
+		case views.ActionGoSettings:
+			m.State = StateProfileSettings
+		case views.ActionGoHelp:
+			m.State = StateHelp
+		case views.ActionQuit:
+			return m, tea.Quit
+		}
+		return m, nil
+	}
+
+	var cmd tea.Cmd
+	m.PaletteModel, cmd = m.PaletteModel.Update(msg)
+	return m, cmd
 }
 
 func (m MainModel) executeConfirmedAction() (tea.Model, tea.Cmd) {

@@ -16,6 +16,7 @@ type KeyMap struct {
 	Login       key.Binding
 	Feed        key.Binding
 	Communities key.Binding
+	Palette     key.Binding
 }
 
 func NewKeyMap(cfg config.KeyConfig) KeyMap {
@@ -59,6 +60,10 @@ func NewKeyMap(cfg config.KeyConfig) KeyMap {
 		Communities: key.NewBinding(
 			key.WithKeys(cfg.Communities),
 			key.WithHelp(cfg.Communities, "communities view"),
+		),
+		Palette: key.NewBinding(
+			key.WithKeys(cfg.Palette),
+			key.WithHelp(cfg.Palette, "command palette"),
 		),
 	}
 }
