@@ -37,7 +37,12 @@ type KeyConfig struct {
 
 const DefaultBaseURL = "http://localhost:9001/v1"
 
+var ConfigPathOverride string
+
 func GetConfigPath() (string, error) {
+	if ConfigPathOverride != "" {
+		return ConfigPathOverride, nil
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err

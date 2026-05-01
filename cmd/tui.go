@@ -14,8 +14,10 @@ var tuiCmd = &cobra.Command{
 	Short: "Launch the TUI application",
 	Run: func(cmd *cobra.Command, args []string) {
 		m := ui.NewMainModel(cfg)
-		if token != "" {
-			m.Client.SetToken(token)
+		if token != "" || cfg.Token != "" {
+			if token != "" {
+				m.Client.SetToken(token)
+			}
 			m.State = ui.StateLoading
 		} else {
 			m.State = ui.StateLogin

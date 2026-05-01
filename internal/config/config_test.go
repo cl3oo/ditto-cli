@@ -22,9 +22,27 @@ func TestConfigSaveAndLoad(t *testing.T) {
 	tmpFile := "config_test.toml"
 	defer os.Remove(tmpFile)
 
-	// Mock GetConfigPath to use our tmp file
-	// (Note: in a real project we might use an interface or a variable for the path)
-	// For this test, we'll manually use Save/Load logic if they were exported for testing.
-	// Since we can't easily mock GetConfigPath without changing code, 
-	// let's verify DefaultConfig for now.
+	ConfigPathOverride = tmpFile
+	defer func() { ConfigPathOverride = "" }()
+
+	cfg := DefaultConfig()
+	cfg.Token = "test-token"
+	cfg.BaseURL = "http://test-api"
+
+	err := cfg.Save()
+	if err != nil {
+		t.Fatalf("failed to save config: %v", err)
+	}
+
+	loaded, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("failed to load config: %v", err)
+	}
+
+	if loaded.Token != "test-token" {
+		t.Errorf("expected token test-token, got %s", loaded.Token)
+	}
+	if loaded.BaseURL != "http://test-api" {
+		t.Errorf("expected base URL http://test-api, got %s", loaded.BaseURL)
+	}
 }
