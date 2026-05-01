@@ -75,7 +75,7 @@ func (m LoginModel) View() string {
 		title = "Successfully Authenticated! ✨"
 	}
 	s += lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62")).Render(title) + "\n\n"
-	
+
 	if !m.LoggedIn {
 		s += m.Username.View() + "\n"
 		s += m.Password.View() + "\n\n"
@@ -98,7 +98,7 @@ func (m LoginModel) View() string {
 	if m.Focused == 3 {
 		registerBtn = lipgloss.NewStyle().Foreground(lipgloss.Color("170")).Bold(true).Render("[ Register New Account ]")
 	}
-	
+
 	s += submitBtn + "  " + registerBtn + "\n"
 
 	if m.Error != "" {

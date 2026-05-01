@@ -54,7 +54,7 @@ func (m MainModel) View() string {
 
 	contentHeight := lipgloss.Height(content)
 	headerHeight := lipgloss.Height(m.renderHeader()) + 2
-	
+
 	padding := m.Height - contentHeight - headerHeight - footerHeight
 	if padding > 0 {
 		s.WriteString(strings.Repeat("\n", padding))
@@ -117,7 +117,7 @@ func (m MainModel) renderHeader() string {
 	case StateSelection:
 		bc += "> SELECT "
 	}
-	
+
 	header := m.Theme.Title.Render(bc)
 	if m.Client.Token != "" {
 		userStr := "(Logged In)"

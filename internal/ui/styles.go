@@ -47,7 +47,7 @@ func NewTheme(cfg config.AppearanceConfig) Theme {
 		Error: lipgloss.NewStyle().
 			Foreground(errColor).
 			Bold(true),
-		
+
 		Markdown: `{
 			"para": { "margin_left": 2 },
 			"heading": { "color": "` + cfg.AccentColor + `", "bold": true },

@@ -14,7 +14,7 @@ type CommunityItem struct {
 	types.Community
 }
 
-func (i CommunityItem) Title() string       { return "c/" + i.Community.Name }
+func (i CommunityItem) Title() string { return "c/" + i.Community.Name }
 func (i CommunityItem) Description() string {
 	return fmt.Sprintf("%s • 👥 %d • 📝 %d", i.Community.Title, i.Community.Scores.SubCount, i.Community.Scores.PostCount)
 }

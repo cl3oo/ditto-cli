@@ -3,8 +3,8 @@ package cmd
 import (
 	"testing"
 
-	"github.com/rfcku/ditto/cli/internal/api"
-	"github.com/rfcku/ditto/cli/internal/config"
+	"github.com/rfcku/ditto-cli/internal/api"
+	"github.com/rfcku/ditto-cli/internal/config"
 )
 
 func TestRegisterRequiresExplicitEmail(t *testing.T) {

@@ -19,11 +19,11 @@ type PostDetailTheme struct {
 }
 
 type PostDetailModel struct {
-	Post             types.Post
-	Comments         []types.Comment
+	Post              types.Post
+	Comments          []types.Comment
 	FlattenedComments []commentWithDepth
-	SelectedIdx      int // -1 for post, 0+ for comments
-	
+	SelectedIdx       int // -1 for post, 0+ for comments
+
 	Viewport         viewport.Model
 	CommentInput     textinput.Model
 	ShowCommentInput bool
@@ -94,7 +94,7 @@ func (m PostDetailModel) View() string {
 	if !m.Ready {
 		return "  Loading post..."
 	}
-	
+
 	var actionMenu string
 	if !m.ShowCommentInput {
 		if m.SelectedIdx == -1 {
@@ -111,7 +111,7 @@ func (m PostDetailModel) View() string {
 	}
 
 	v := m.Viewport.View()
-	
+
 	var footer string
 	if m.ShowCommentInput {
 		footer = "\n" + lipgloss.NewStyle().
@@ -184,20 +184,20 @@ func (m *PostDetailModel) render() {
 	headerStyle := lipgloss.NewStyle().
 		Bold(true).
 		Foreground(m.Theme.Accent)
-	
+
 	if m.SelectedIdx == -1 {
 		headerStyle = headerStyle.Background(lipgloss.Color("235"))
 	}
-	
+
 	headerText := fmt.Sprintf("%s (p/%s)", m.Post.Title, m.Post.ID)
 	if m.Post.Locked {
 		headerText += " [LOCKED]"
 	}
 	s.WriteString(headerStyle.Render(headerText) + "\n")
-	
+
 	s.WriteString(lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241")).
-		Render(fmt.Sprintf("u/%s (u/%s) in c/%s (c/%s) • ↑↓ %d • 💬 %d", 
+		Render(fmt.Sprintf("u/%s (u/%s) in c/%s (c/%s) • ↑↓ %d • 💬 %d",
 			m.Post.Author.Username, m.Post.Author.ID,
 			m.Post.Community.Name, m.Post.Community.ID,
 			m.Post.Scores.VoteScore,
@@ -234,22 +234,22 @@ func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) st
 	if c.Depth > 0 {
 		indent = strings.Repeat("│ ", c.Depth-1) + "├─"
 	}
-	
+
 	var s strings.Builder
 	authorStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62"))
 	scoreStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
-	contentStyle := lipgloss.NewStyle().PaddingLeft(c.Depth * 2 + 2)
+	contentStyle := lipgloss.NewStyle().PaddingLeft(c.Depth*2 + 2)
 
 	if selected {
 		authorStyle = authorStyle.Background(lipgloss.Color("235"))
 		contentStyle = contentStyle.Background(lipgloss.Color("235"))
 	}
 
-	s.WriteString(fmt.Sprintf("%s %s %s\n", 
-		indent, 
+	s.WriteString(fmt.Sprintf("%s %s %s\n",
+		indent,
 		authorStyle.Render("u/"+c.Author.Username),
 		scoreStyle.Render(fmt.Sprintf("↑↓ %d", c.Scores.VoteScore))))
-	
+
 	// Wrap comment content
 	s.WriteString(contentStyle.Render(c.Content) + "\n\n")
 

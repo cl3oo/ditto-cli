@@ -52,15 +52,18 @@ func (m CreatePostModel) Update(msg tea.Msg) (CreatePostModel, tea.Cmd) {
 			} else {
 				m.Focused = (m.Focused - 1 + 4) % 4
 			}
-			
+
 			m.Title.Blur()
 			m.CommunityID.Blur()
 			m.Content.Blur()
 
 			switch m.Focused {
-			case 0: m.Title.Focus()
-			case 1: m.CommunityID.Focus()
-			case 2: m.Content.Focus()
+			case 0:
+				m.Title.Focus()
+			case 1:
+				m.CommunityID.Focus()
+			case 2:
+				m.Content.Focus()
 			}
 		}
 	}
@@ -78,7 +81,7 @@ func (m CreatePostModel) Update(msg tea.Msg) (CreatePostModel, tea.Cmd) {
 func (m CreatePostModel) View() string {
 	var s string
 	s += lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62")).Render("Create New Post") + "\n\n"
-	
+
 	s += "Title:\n" + m.Title.View() + "\n\n"
 	s += "Community:\n" + m.CommunityID.View() + "\n\n"
 	s += "Content:\n" + m.Content.View() + "\n\n"
