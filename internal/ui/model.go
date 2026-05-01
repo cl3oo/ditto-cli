@@ -3,8 +3,6 @@ package ui
 import (
 	"errors"
 	"fmt"
-	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 
@@ -1143,15 +1141,7 @@ func (m MainModel) performDeleteUser(id string) tea.Cmd {
 
 func (m MainModel) performShare(url string) tea.Cmd {
 	return func() tea.Msg {
-		var err error
-		switch runtime.GOOS {
-		case "darwin":
-			err = exec.Command("sh", "-c", "echo "+url+" | pbcopy").Run()
-		case "linux":
-			err = exec.Command("sh", "-c", "echo "+url+" | xclip -selection clipboard").Run()
-		}
-
-		if err != nil {
+		if err := copyToClipboard(url); err != nil {
 			return statusMsg("Link: " + url)
 		}
 		return statusMsg("Link copied to clipboard!")
