@@ -5,6 +5,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
 type CreatePostModel struct {
@@ -12,6 +13,7 @@ type CreatePostModel struct {
 	CommunityID textinput.Model
 	Content     textarea.Model
 	Focused     int // 0: Title, 1: CommunityID, 2: Content, 3: Submit
+	Theme       theme.Theme
 }
 
 func NewCreatePostModel() CreatePostModel {
@@ -37,6 +39,10 @@ func NewCreatePostModel() CreatePostModel {
 
 func (m CreatePostModel) Init() tea.Cmd {
 	return nil
+}
+
+func (m *CreatePostModel) SetTheme(t theme.Theme) {
+	m.Theme = t
 }
 
 func (m CreatePostModel) Update(msg tea.Msg) (CreatePostModel, tea.Cmd) {
@@ -80,15 +86,15 @@ func (m CreatePostModel) Update(msg tea.Msg) (CreatePostModel, tea.Cmd) {
 
 func (m CreatePostModel) View() string {
 	var s string
-	s += lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62")).Render("Create New Post") + "\n\n"
+	s += m.Theme.AccentText.Bold(true).Render("Create New Post") + "\n\n"
 
-	s += "Title:\n" + m.Title.View() + "\n\n"
-	s += "Community:\n" + m.CommunityID.View() + "\n\n"
-	s += "Content:\n" + m.Content.View() + "\n\n"
+	s += m.Theme.Text.Render("Title:") + "\n" + m.Title.View() + "\n\n"
+	s += m.Theme.Text.Render("Community:") + "\n" + m.CommunityID.View() + "\n\n"
+	s += m.Theme.Text.Render("Content:") + "\n" + m.Content.View() + "\n\n"
 
 	submitBtn := "[ Submit ]"
 	if m.Focused == 3 {
-		submitBtn = lipgloss.NewStyle().Foreground(lipgloss.Color("170")).Bold(true).Render("[ Submit ]")
+		submitBtn = m.Theme.Selected.Render("[ Submit ]")
 	}
 	s += submitBtn + "\n"
 

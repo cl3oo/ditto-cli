@@ -21,6 +21,7 @@ type Config struct {
 }
 
 type AppearanceConfig struct {
+	Theme           string `toml:"theme"`
 	AccentColor     string `toml:"accent_color"`
 	BackgroundColor string `toml:"background_color"`
 	BorderColor     string `toml:"border_color"`
@@ -39,6 +40,7 @@ type KeyConfig struct {
 	Login       string `toml:"login"`
 	Feed        string `toml:"feed"`
 	Communities string `toml:"communities"`
+	Palette     string `toml:"palette"`
 }
 
 const DefaultBaseURL = "http://localhost:9001/api/v1"
@@ -67,6 +69,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		BaseURL: DefaultBaseURL,
 		Appearance: AppearanceConfig{
+			Theme:           "auto",
 			AccentColor:     "#7D56F4",
 			BackgroundColor: "#1A1B26",
 			BorderColor:     "#874BFD",
@@ -84,6 +87,7 @@ func DefaultConfig() *Config {
 			Login:       ":L",
 			Feed:        ":F",
 			Communities: ":C",
+			Palette:     ":",
 		},
 	}
 }

@@ -87,11 +87,12 @@ type MainModel struct {
 }
 
 func NewMainModel(cfg *config.Config) MainModel {
+	t := NewTheme(cfg.Appearance)
 	m := MainModel{
 		State:              StateLoading,
 		Client:             api.NewClient(cfg.BaseURL),
 		Config:             cfg,
-		Theme:              NewTheme(cfg.Appearance),
+		Theme:              t,
 		Keys:               NewKeyMap(cfg.Keys),
 		FeedModel:          views.NewFeedModel(),
 		LoginModel:         views.NewLoginModel(),
@@ -105,9 +106,15 @@ func NewMainModel(cfg *config.Config) MainModel {
 		HelpModel:          views.NewHelpModel(),
 	}
 	m.Client.SetToken(cfg.Token)
-	m.FeedModel.SetTheme(m.Theme.Selected)
-	m.CommunityModel.SetTheme(m.Theme.Selected)
-	m.PostDetailModel.SetTheme(m.Theme.Accent, m.Theme.Selected, m.Theme.Markdown)
+
+	// Propagate theme to sub-models
+	m.FeedModel.SetTheme(t)
+	m.CommunityModel.SetTheme(t)
+	m.PostDetailModel.SetTheme(t)
+	m.HelpModel.SetTheme(t)
+	m.LoginModel.SetTheme(t)
+	m.CreatePostModel.SetTheme(t)
+
 	return m
 }
 

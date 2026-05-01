@@ -10,13 +10,8 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/rfcku/ditto-cli/internal/types"
+	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
-
-type PostDetailTheme struct {
-	Accent   lipgloss.Color
-	Selected lipgloss.Style
-	Markdown string
-}
 
 type PostDetailModel struct {
 	Post              types.Post
@@ -31,7 +26,7 @@ type PostDetailModel struct {
 	Page             int
 	Width            int
 	Height           int
-	Theme            PostDetailTheme
+	Theme            theme.Theme
 }
 
 type commentWithDepth struct {
@@ -52,8 +47,8 @@ func NewPostDetailModel() PostDetailModel {
 	}
 }
 
-func (m *PostDetailModel) SetTheme(accent lipgloss.Color, selected lipgloss.Style, markdown string) {
-	m.Theme = PostDetailTheme{Accent: accent, Selected: selected, Markdown: markdown}
+func (m *PostDetailModel) SetTheme(t theme.Theme) {
+	m.Theme = t
 }
 
 func (m PostDetailModel) Init() tea.Cmd {
@@ -98,15 +93,10 @@ func (m PostDetailModel) View() string {
 	var actionMenu string
 	if !m.ShowCommentInput {
 		if m.SelectedIdx == -1 {
-			actionMenu = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("241")).
-				Render("Actions: (r)eply • (p)rofile • (s)hare • (R)eport • (L)oad more")
+			actionMenu = m.Theme.TextSubtle.Render("Actions: (r)eply • (p)rofile • (s)hare • (R)eport • (L)oad more")
 		} else {
 			author := m.FlattenedComments[m.SelectedIdx].Author.Username
-			actionMenu = lipgloss.NewStyle().
-				Foreground(lipgloss.Color("170")).
-				Bold(true).
-				Render(fmt.Sprintf("Comment by u/%s: (r)eply • (p)rofile • (s)hare • (R)eport", author))
+			actionMenu = m.Theme.AccentText.Bold(true).Render(fmt.Sprintf("Comment by u/%s: (r)eply • (p)rofile • (s)hare • (R)eport", author))
 		}
 	}
 
@@ -116,7 +106,7 @@ func (m PostDetailModel) View() string {
 	if m.ShowCommentInput {
 		footer = "\n" + lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder(), true, false, false, false).
-			BorderForeground(lipgloss.Color("241")).
+			BorderForeground(m.Theme.TextSubtle.GetForeground()).
 			Padding(1, 1).
 			Render(m.CommentInput.View())
 	} else {
@@ -181,12 +171,10 @@ func (m *PostDetailModel) render() {
 	var s strings.Builder
 
 	// Render Post Header
-	headerStyle := lipgloss.NewStyle().
-		Bold(true).
-		Foreground(m.Theme.Accent)
+	headerStyle := m.Theme.AccentText.Bold(true)
 
 	if m.SelectedIdx == -1 {
-		headerStyle = headerStyle.Background(lipgloss.Color("235"))
+		headerStyle = headerStyle.Reverse(true)
 	}
 
 	headerText := fmt.Sprintf("%s (p/%s)", m.Post.Title, m.Post.ID)
@@ -195,15 +183,13 @@ func (m *PostDetailModel) render() {
 	}
 	s.WriteString(headerStyle.Render(headerText) + "\n")
 
-	s.WriteString(lipgloss.NewStyle().
-		Foreground(lipgloss.Color("241")).
-		Render(fmt.Sprintf("u/%s (u/%s) in c/%s (c/%s) • ↑↓ %d • 💬 %d • 💎 %d • %s",
-			m.Post.Author.Username, m.Post.Author.ID,
-			m.Post.Community.Name, m.Post.Community.ID,
-			m.Post.Scores.VoteScore,
-			m.Post.Scores.CommentCount,
-			m.Post.Scores.AwardCount,
-			RelativeTime(m.Post.CreatedAt))) + "\n\n")
+	s.WriteString(m.Theme.TextSubtle.Render(fmt.Sprintf("u/%s (u/%s) in c/%s (c/%s) • ↑↓ %d • 💬 %d • 💎 %d • %s",
+		m.Post.Author.Username, m.Post.Author.ID,
+		m.Post.Community.Name, m.Post.Community.ID,
+		m.Post.Scores.VoteScore,
+		m.Post.Scores.CommentCount,
+		m.Post.Scores.AwardCount,
+		RelativeTime(m.Post.CreatedAt))) + "\n\n")
 
 	// Render Post Content with Glamour
 	var renderer *glamour.TermRenderer
@@ -221,7 +207,7 @@ func (m *PostDetailModel) render() {
 	out, _ := renderer.Render(m.Post.Content)
 	s.WriteString(out + "\n")
 
-	s.WriteString(lipgloss.NewStyle().Bold(true).Render("Comments:") + "\n\n")
+	s.WriteString(m.Theme.Text.Bold(true).Render("Comments:") + "\n\n")
 
 	// Render flattened comments with selection
 	for i, c := range m.FlattenedComments {
@@ -238,13 +224,18 @@ func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) st
 	}
 
 	var s strings.Builder
-	authorStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62"))
-	scoreStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	authorStyle := m.Theme.Text.Bold(true)
+	scoreStyle := m.Theme.TextSubtle
 	contentStyle := lipgloss.NewStyle().PaddingLeft(c.Depth*2 + 2)
 
 	if selected {
-		authorStyle = authorStyle.Background(lipgloss.Color("235"))
-		contentStyle = contentStyle.Background(lipgloss.Color("235"))
+		authorStyle = authorStyle.Reverse(true)
+		contentStyle = contentStyle.Background(m.Theme.Accent) // Highlight content area slightly or use reverse
+		if lipgloss.HasDarkBackground() {
+			contentStyle = contentStyle.Background(lipgloss.Color("236"))
+		} else {
+			contentStyle = contentStyle.Background(lipgloss.Color("250"))
+		}
 	}
 
 	_, _ = fmt.Fprintf(&s, "%s %s • %s • %s\n",

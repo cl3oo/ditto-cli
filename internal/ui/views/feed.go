@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/rfcku/ditto-cli/internal/types"
+	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
 type PostItem struct {
@@ -40,7 +41,7 @@ func RelativeTime(t time.Time) string {
 }
 
 type itemDelegate struct {
-	Theme lipgloss.Style // Selected style
+	Theme theme.Theme
 }
 
 func (d itemDelegate) Height() int                               { return 5 }
@@ -54,27 +55,24 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 
 	isSelected := index == m.Index()
 
-	cardStyle := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("238")).
-		Padding(0, 1).
+	cardStyle := d.Theme.Post.
 		Width(max(20, m.Width()-4))
 
 	if isSelected {
-		cardStyle = cardStyle.BorderForeground(lipgloss.Color("170"))
+		cardStyle = cardStyle.BorderForeground(d.Theme.Accent)
 	}
 
-	header := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+	header := d.Theme.TextSubtle.Render(
 		fmt.Sprintf("u/%s in c/%s • %s", i.Author.Username, i.Community.Name, RelativeTime(i.CreatedAt)),
 	)
 
-	titleStyle := lipgloss.NewStyle().Bold(true)
+	titleStyle := d.Theme.Text.Bold(true)
 	if isSelected {
-		titleStyle = titleStyle.Foreground(lipgloss.Color("170"))
+		titleStyle = d.Theme.AccentText.Bold(true)
 	}
 	title := titleStyle.Render(i.Title())
 
-	stats := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+	stats := d.Theme.TextSubtle.Render(
 		fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d",
 			i.Scores.VoteScore,
 			i.Scores.CommentCount,
@@ -94,7 +92,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 type FeedModel struct {
 	List   list.Model
 	Loaded bool
-	Theme  lipgloss.Style
+	Theme  theme.Theme
 }
 
 func NewFeedModel() FeedModel {
@@ -108,9 +106,9 @@ func NewFeedModel() FeedModel {
 	}
 }
 
-func (m *FeedModel) SetTheme(selected lipgloss.Style) {
-	m.Theme = selected
-	m.List.SetDelegate(itemDelegate{Theme: selected})
+func (m *FeedModel) SetTheme(theme theme.Theme) {
+	m.Theme = theme
+	m.List.SetDelegate(itemDelegate{Theme: theme})
 }
 func (m FeedModel) Init() tea.Cmd {
 	return nil
