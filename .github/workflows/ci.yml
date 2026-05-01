@@ -39,11 +39,10 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
-      - name: Install dependencies
-        run: go mod download
-
-      - name: Run lint
-        run: make lint
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.11.4
 
   build:
     runs-on: ubuntu-latest
