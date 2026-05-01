@@ -118,12 +118,15 @@ func (m MainModel) renderHeader() string {
 	if m.Client.Token != "" {
 		userStr := "(Logged In)"
 		if m.Me != nil {
-			userStr = fmt.Sprintf("(u/%s)", m.Me.Username)
+			userStr = fmt.Sprintf("u/%s", m.Me.Username)
+		}
+		if m.Wallet != nil {
+			userStr += fmt.Sprintf(" | 🪙 %d | 💎 %d", m.Wallet.Coins, m.Wallet.Tokens)
 		}
 		header += lipgloss.NewStyle().
 			Foreground(lipgloss.Color("241")).
 			MarginLeft(1).
-			Render(userStr)
+			Render("(" + userStr + ")")
 	}
 	return header
 }

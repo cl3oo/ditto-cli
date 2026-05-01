@@ -60,6 +60,8 @@ While in the TUI, press `:` to enter command mode:
 | `:lock` | Lock the current post (Moderator only) |
 | `:unlock` | Unlock the current post (Moderator only) |
 | `:mod-delete <reason>` | Delete a post as a moderator |
+| `:award <award_id>` | Give an award to the current post |
+| `:report <reason>` | Report the current post or community |
 | `:delete-comment <id>` | Delete a specific comment by ID |
 | `:settings` | Edit your user profile (avatar) |
 | `:delete-account` | Permanently delete your account |
@@ -70,16 +72,16 @@ While in the TUI, press `:` to enter command mode:
 You can also use `ditto-cli` for one-off operations:
 
 ```bash
-# Get random posts
+# Upload media to a post
+./ditto-cli upload image.png --target <post_id>
+
+# Download media
+./ditto-cli download <media_id> --output photo.png
+
+# Get random posts, communities, users or comments
 ./ditto-cli get posts --random 5
-
-# Get random communities
 ./ditto-cli get communities --random 10
-
-# Get random users
 ./ditto-cli get users --random 3
-
-# Get random comments
 ./ditto-cli get comments --random 5
 ```
 

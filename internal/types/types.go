@@ -80,3 +80,26 @@ type TokenResponse struct {
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
+
+type Wallet struct {
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	Tokens    int       `json:"tokens"`
+	Coins     int       `json:"coins"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type MetaDataResult struct {
+	ID         string `json:"id"`
+	TargetID   string `json:"target_id"`
+	TargetType int    `json:"target_type"`
+	VoteScore  int    `json:"vote_score"`
+	AwardCount int    `json:"award_count"`
+}
+
+type Award struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Icon string `json:"icon"`
+	Cost int    `json:"cost"`
+}

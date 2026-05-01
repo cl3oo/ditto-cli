@@ -35,7 +35,7 @@ type KeyConfig struct {
 	Communities string `toml:"communities"`
 }
 
-const DefaultBaseURL = "http://localhost:9001/api/v1"
+const DefaultBaseURL = "http://localhost:9001/v1"
 
 func GetConfigPath() (string, error) {
 	home, err := os.UserHomeDir()

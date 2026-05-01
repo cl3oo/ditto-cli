@@ -114,29 +114,30 @@ To implement the missing API endpoints into the Ditto CLI, prioritizing core use
 ## Phase 4: Advanced Features & Ecosystem
 
 ### Media
-- [ ] **Upload media** (`POST /media/{id}`)
-  - **API**: Add `UploadMedia(targetID string, targetType int, filePath string) error` using `multipart/form-data` in `internal/api/client.go`.
-  - **CLI**: Implement a specific CLI command `ditto upload <file> --target <id>`.
-- [ ] **Serve media** (`GET /media/{id}`)
-  - **API**: Add `DownloadMedia(mediaID, outputPath string) error` in `internal/api/client.go`.
+- [x] **Upload media** (`POST /media/{id}`)
+  - **API**: Added `UploadMedia` in `internal/api/client.go`.
+  - **CLI**: Added `ditto upload <file> --target <id>`.
+- [x] **Serve media** (`GET /media/{id}`)
+  - **API**: Added `DownloadMedia` in `internal/api/client.go`.
+  - **CLI**: Added `ditto download <id> --output <path>`.
 
 ### Wallet & Economy
-- [ ] **Get current user's wallet** (`GET /users/wallet`)
-  - **API**: Add `GetWallet() (*types.Wallet, error)` in `internal/api/client.go`.
-  - **TUI**: Display token/coin balance in the main header or profile view.
-- [ ] **Give an award** (`POST /awards/{id}`)
-  - **API**: Add `GiveAward(targetID string, targetType int, awardID string) error` in `internal/api/client.go`.
-  - **TUI**: Add `:award <type>` command in `StatePostDetail`.
-- [ ] **Remove an award** (`DELETE /awards/{id}`)
-  - **API**: Add `RemoveAward(awardID string) error` in `internal/api/client.go`.
+- [x] **Get current user's wallet** (`GET /users/wallet`)
+  - **API**: Added `GetWallet` in `internal/api/client.go`.
+  - **TUI**: Displaying coins and tokens in the header.
+- [x] **Give an award** (`POST /awards/{id}`)
+  - **API**: Added `GiveAward` in `internal/api/client.go`.
+  - **TUI**: Added `:award <award_id>` command.
+- [x] **Remove an award** (`DELETE /awards/{id}`)
+  - **API**: Added `RemoveAward` in `internal/api/client.go`.
 
 ### Platform Operations
-- [ ] **Submit a report** (`POST /reports/{id}`)
-  - **API**: Add `ReportResource(targetID string, targetType int, reason string) error` in `internal/api/client.go`.
-  - **TUI**: Add `:report <reason>` command when viewing posts or comments.
-- [ ] **Get resource metadata** (`GET /meta/{id}`)
-  - **API**: Add `GetMetaData(targetID string, targetType int) (*types.MetaDataResult, error)` in `internal/api/client.go`.
-  - **TUI**: Call this periodically or on-load to update vote scores and award counts.
+- [x] **Submit a report** (`POST /reports/{id}`)
+  - **API**: Added `ReportResource` in `internal/api/client.go`.
+  - **TUI**: Added `:report <reason>` command.
+- [x] **Get resource metadata** (`GET /meta/{id}`)
+  - **API**: Added `GetMetaData` in `internal/api/client.go`.
+  - **TUI**: Used for background updates and refresh.
 
 ---
 

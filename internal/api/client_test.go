@@ -117,13 +117,13 @@ func TestClient_CreatePost(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("Mock server received: %s %s", r.Method, r.URL.Path)
 		path := strings.TrimSuffix(r.URL.Path, "/")
-		if r.Method == "GET" && (path == "/v1/communities" || path == "/communities") {
+		if r.Method == "GET" && strings.HasSuffix(path, "/communities") {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"data": [{"id": "c1", "name": "Community"}]}`))
 			return
 		}
-		if r.Method == "POST" && (path == "/v1/posts/c1" || path == "/posts/c1") && r.URL.Query().Get("type") == "1" {
+		if r.Method == "POST" && strings.HasSuffix(path, "/posts/c1") && r.URL.Query().Get("type") == "1" {
 			w.WriteHeader(http.StatusCreated)
 			return
 		}

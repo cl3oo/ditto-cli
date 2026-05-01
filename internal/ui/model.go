@@ -45,6 +45,7 @@ type MainModel struct {
 	Height        int
 	CommandBuffer string
 	Me            *types.User
+	Wallet        *types.Wallet
 
 	// Sub-models
 	FeedModel       views.FeedModel
@@ -88,6 +89,7 @@ func (m MainModel) Init() tea.Cmd {
 	cmds = append(cmds, m.LoginModel.Init())
 	if m.Client.Token != "" {
 		cmds = append(cmds, m.fetchMe())
+		cmds = append(cmds, m.fetchWallet())
 	}
 	return tea.Batch(cmds...)
 }
@@ -231,6 +233,23 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if m.State == StatePostDetail && len(parts) > 1 {
 						reason := strings.Join(parts[1:], " ")
 						return m, m.performModDeletePost(m.PostDetailModel.Post.ID, reason)
+					}
+				case ":award":
+					if m.State == StatePostDetail && len(parts) > 1 {
+						awardID := parts[1]
+						return m, m.performGiveAward(m.PostDetailModel.Post.ID, 2, awardID)
+					}
+				case ":report":
+					if len(parts) > 1 {
+						reason := strings.Join(parts[1:], " ")
+						if m.State == StatePostDetail {
+							return m, m.performReport(m.PostDetailModel.Post.ID, 2, reason)
+						}
+						if m.State == StateCommunities {
+							if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
+								return m, m.performReport(item.ID, 1, reason)
+							}
+						}
 					}
 				case ":delete-comment":
 					if m.State == StatePostDetail && len(parts) > 1 {
@@ -439,10 +458,14 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Persist token
 		m.Config.UpdateToken(string(msg))
 		
-		return m, tea.Batch(m.fetchFeed(), m.fetchMe())
+		return m, tea.Batch(m.fetchFeed(), m.fetchMe(), m.fetchWallet())
 
 	case meMsg:
 		m.Me = (*types.User)(msg)
+		return m, nil
+
+	case walletMsg:
+		m.Wallet = (*types.Wallet)(msg)
 		return m, nil
 
 	case commentSuccessMsg:
@@ -517,6 +540,7 @@ type postDetailMsg struct {
 type loginSuccessMsg string
 type commentSuccessMsg string
 type meMsg *types.User
+type walletMsg *types.Wallet
 type errorMsg error
 
 func (m MainModel) fetchFeed() tea.Cmd {
@@ -536,6 +560,16 @@ func (m MainModel) fetchMe() tea.Cmd {
 			return errorMsg(err)
 		}
 		return meMsg(user)
+	}
+}
+
+func (m MainModel) fetchWallet() tea.Cmd {
+	return func() tea.Msg {
+		wallet, err := m.Client.GetWallet()
+		if err != nil {
+			return errorMsg(err)
+		}
+		return walletMsg(wallet)
 	}
 }
 
@@ -849,6 +883,30 @@ func (m MainModel) performModDeletePost(postID, reason string) tea.Cmd {
 			return errorMsg(err)
 		}
 		return statusMsg("Post deleted by moderator")
+	}
+}
+
+func (m MainModel) performGiveAward(targetID string, targetType int, awardID string) tea.Cmd {
+	return func() tea.Msg {
+		err := m.Client.GiveAward(targetID, targetType, awardID)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return tea.Batch(
+			m.fetchWallet(), // Update balance
+			m.fetchPostDetail(targetID), // Update award count
+			func() tea.Msg { return statusMsg("Award given!") },
+		)
+	}
+}
+
+func (m MainModel) performReport(targetID string, targetType int, reason string) tea.Cmd {
+	return func() tea.Msg {
+		err := m.Client.ReportResource(targetID, targetType, reason)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return statusMsg("Report submitted")
 	}
 }
 

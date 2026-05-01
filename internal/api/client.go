@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptrace"
 	"net/url"
@@ -14,8 +15,10 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
 	"github.com/rfcku/ditto/cli/internal/types"
 )
+
 
 var (
 	ErrUnauthorized = errors.New("unauthorized")
@@ -78,10 +81,7 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 	baseURL := strings.TrimSuffix(c.BaseURL, "/")
 	path = "/" + strings.TrimPrefix(path, "/")
 	
-	url := fmt.Sprintf("%s%s", baseURL, path)
-	if !strings.HasPrefix(path, "/v1") && !strings.Contains(baseURL, "/v1") {
-	        url = fmt.Sprintf("%s/v1%s", baseURL, path)
-	}
+	url := baseURL + path
 	req, err := http.NewRequest(method, url, bodyReader)
 
 	if err != nil {
@@ -470,4 +470,110 @@ func (c *Client) LockPost(postID string, lock bool) error {
 func (c *Client) ModDeletePost(postID, reason string) error {
 	body := map[string]string{"reason": reason}
 	return c.Request("DELETE", fmt.Sprintf("/posts/%s/mod/", postID), body, nil)
+}
+
+func (c *Client) UploadMedia(targetID string, targetType int, filePath string) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", filepath.Base(filePath))
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(part, file)
+	if err != nil {
+		return err
+	}
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
+
+	path := fmt.Sprintf("/media/%s?type=%d", targetID, targetType)
+	baseURL := strings.TrimSuffix(c.BaseURL, "/")
+	url := baseURL + path
+
+	req, err := http.NewRequest("POST", url, body)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("upload failed: %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+func (c *Client) DownloadMedia(mediaID, outputPath string) error {
+	url := strings.TrimSuffix(c.BaseURL, "/") + "/media/" + mediaID
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+	if c.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Token)
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("download failed: %d", resp.StatusCode)
+	}
+
+	out, err := os.Create(outputPath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	return err
+}
+
+func (c *Client) GetWallet() (*types.Wallet, error) {
+	var wallet types.Wallet
+	err := c.Request("GET", "/users/wallet/", nil, &wallet)
+	return &wallet, err
+}
+
+func (c *Client) GiveAward(targetID string, targetType int, awardID string) error {
+	path := fmt.Sprintf("/awards/%s?type=%d&award_id=%s", targetID, targetType, awardID)
+	return c.Request("POST", path, nil, nil)
+}
+
+func (c *Client) RemoveAward(awardID string) error {
+	return c.Request("DELETE", fmt.Sprintf("/awards/%s/", awardID), nil, nil)
+}
+
+func (c *Client) ReportResource(targetID string, targetType int, reason string) error {
+	body := map[string]string{"reason": reason}
+	path := fmt.Sprintf("/reports/%s?type=%d", targetID, targetType)
+	return c.Request("POST", path, body, nil)
+}
+
+func (c *Client) GetMetaData(targetID string, targetType int) (*types.MetaDataResult, error) {
+	var res types.MetaDataResult
+	path := fmt.Sprintf("/meta/%s?type=%d", targetID, targetType)
+	err := c.Request("GET", path, nil, &res)
+	return &res, err
 }
