@@ -224,32 +224,49 @@ func TestClient_GetComments(t *testing.T) {
 }
 
 func TestClient_Logging(t *testing.T) {
-	logFile := "ditto.log"
-	_ = os.Remove(logFile)
-	defer os.Remove(logFile)
-
-	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	logFile := filepath.Join(t.TempDir(), "ditto.log")
+	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 	if err != nil {
 		t.Fatalf("Failed to create log file: %v", err)
 	}
 	logger := log.New(f, "[TEST] ", log.LstdFlags)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"token":"server-token","error":"bad auth"}`))
 	}))
 	defer server.Close()
 
 	client := NewClientWithLogger(server.URL, logger)
-	_ = client.Request("GET", "/log-test", nil, nil)
-	f.Close()
+	_ = client.Request("POST", "/log-test", map[string]string{"password": "secret", "note": "safe"}, nil)
+	_ = f.Close()
 
 	data, err := os.ReadFile(logFile)
 	if err != nil {
 		t.Fatalf("Failed to read log file: %v", err)
 	}
 
-	if len(data) == 0 {
+	content := string(data)
+	if len(content) == 0 {
 		t.Fatal("Expected log file to be non-empty")
+	}
+	if strings.Contains(content, "secret") || strings.Contains(content, "server-token") {
+		t.Fatalf("expected sensitive fields to be redacted from logs, got %s", content)
+	}
+	if !strings.Contains(content, "[REDACTED]") {
+		t.Fatalf("expected redaction marker in logs, got %s", content)
+	}
+}
+
+func TestRedactSensitiveText(t *testing.T) {
+	raw := `{"token":"abc","nested":{"password":"secret"},"items":[{"refresh_token":"r1"}],"safe":"ok"}`
+	cleaned := redactSensitiveText(raw)
+	if strings.Contains(cleaned, "abc") || strings.Contains(cleaned, "secret") || strings.Contains(cleaned, "r1") {
+		t.Fatalf("expected sensitive values to be redacted, got %s", cleaned)
+	}
+	if !strings.Contains(cleaned, "ok") {
+		t.Fatalf("expected non-sensitive values to remain, got %s", cleaned)
 	}
 }
 
@@ -265,9 +282,11 @@ func TestClient_UploadMedia(t *testing.T) {
 
 	// Create a temporary file to upload
 	tmpFile, _ := os.CreateTemp("", "test-upload")
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		_ = os.Remove(tmpFile.Name())
+	}()
 	_, _ = tmpFile.Write([]byte("test data"))
-	tmpFile.Close()
+	_ = tmpFile.Close()
 
 	client := NewClient(server.URL)
 	err := client.UploadMedia("p1", 2, tmpFile.Name())

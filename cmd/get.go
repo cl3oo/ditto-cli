@@ -34,9 +34,9 @@ var getPostsCmd = &cobra.Command{
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-		fmt.Fprintln(w, "ID\tTITLE\tAUTHOR\tCOMMUNITY\tSCORE")
+		_, _ = fmt.Fprintln(w, "ID\tTITLE\tAUTHOR\tCOMMUNITY\tSCORE")
 		for _, p := range posts {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\n",
 				p.ID, p.Title, p.Author.Username, p.Community.Name, p.Scores.VoteScore)
 		}
 		return w.Flush()
@@ -53,9 +53,9 @@ var getFeedCmd = &cobra.Command{
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-		fmt.Fprintln(w, "ID\tTITLE\tAUTHOR\tCOMMUNITY\tSCORE")
+		_, _ = fmt.Fprintln(w, "ID\tTITLE\tAUTHOR\tCOMMUNITY\tSCORE")
 		for _, p := range posts {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\n",
 				p.ID, p.Title, p.Author.Username, p.Community.Name, p.Scores.VoteScore)
 		}
 		return w.Flush()
@@ -78,9 +78,9 @@ var getCommunitiesCmd = &cobra.Command{
 		}
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-		fmt.Fprintln(w, "ID\tNAME\tTITLE\tMEMBERS")
+		_, _ = fmt.Fprintln(w, "ID\tNAME\tTITLE\tMEMBERS")
 		for _, c := range communities {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%d\n",
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%d\n",
 				c.ID, c.Name, c.Title, c.Scores.SubCount)
 		}
 		return w.Flush()
@@ -97,9 +97,9 @@ var getCommentsCmd = &cobra.Command{
 				return err
 			}
 			w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tCONTENT\tAUTHOR\tSCORE")
+			_, _ = fmt.Fprintln(w, "ID\tCONTENT\tAUTHOR\tSCORE")
 			for _, c := range comments {
-				fmt.Fprintf(w, "%s\t%s\t%s\t%d\n",
+				_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%d\n",
 					c.ID, c.Content, c.Author.Username, c.Scores.VoteScore)
 			}
 			return w.Flush()
@@ -118,9 +118,9 @@ var getUsersCmd = &cobra.Command{
 				return err
 			}
 			w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
-			fmt.Fprintln(w, "ID\tUSERNAME")
+			_, _ = fmt.Fprintln(w, "ID\tUSERNAME")
 			for _, u := range users {
-				fmt.Fprintf(w, "%s\t%s\n", u.ID, u.Username)
+				_, _ = fmt.Fprintf(w, "%s\t%s\n", u.ID, u.Username)
 			}
 			return w.Flush()
 		}

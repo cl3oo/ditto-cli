@@ -7,6 +7,9 @@ on:
       - '**.go'
       - 'go.mod'
       - 'go.sum'
+      - 'Makefile'
+      - '.goreleaser.yml'
+      - '.github/workflows/*.yml'
   pull_request:
     branches: [ main ]
 
@@ -36,13 +39,14 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26'
-
-      - name: Install golangci-lint
-        run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.6
+          go-version-file: 'go.mod'
+          cache: true
 
       - name: Run golangci-lint
-        run: $(go env GOPATH)/bin/golangci-lint run --timeout=5m
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11.4
+          install-mode: goinstall
 
   build:
     runs-on: ubuntu-latest
@@ -55,4 +59,26 @@ jobs:
           go-version-file: 'go.mod'
 
       - name: Build
-        run: go build -v -o ditto-cli .
+        run: make build
+
+  release-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+          cache: true
+
+      - name: Set up GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          install-only: true
+
+      - name: Validate release config
+        run: make release-check

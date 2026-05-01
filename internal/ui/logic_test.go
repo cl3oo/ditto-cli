@@ -5,6 +5,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rfcku/ditto-cli/internal/config"
+	"github.com/rfcku/ditto-cli/internal/types"
 )
 
 func TestMainModel_CommandTransitions(t *testing.T) {
@@ -48,7 +49,7 @@ func TestMainModel_CommandTransitions(t *testing.T) {
 		}{
 			{":report spam", StateLoading},
 			{":award silver", StateLoading},
-			{":delete", StateLoading},
+			{":delete", StateConfirm},
 		}
 
 		for _, tt := range cmds {
@@ -58,6 +59,30 @@ func TestMainModel_CommandTransitions(t *testing.T) {
 			if updatedM.State != tt.expected {
 				t.Errorf("%s: expected state %v, got %v", tt.cmd, tt.expected, updatedM.State)
 			}
+		}
+	})
+
+	t.Run("Delete account requires double confirmation", func(t *testing.T) {
+		m.State = StateProfileSettings
+		m.Me = &types.User{ID: "u1", Username: "tester"}
+		m.CommandBuffer = ":delete-account"
+
+		newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+		updatedM := newModel.(MainModel)
+		if updatedM.State != StateConfirm {
+			t.Fatalf("expected confirm state, got %v", updatedM.State)
+		}
+		if updatedM.ConfirmDialog.Step != 1 || updatedM.ConfirmDialog.Steps != 2 {
+			t.Fatalf("expected double confirm step 1/2, got %d/%d", updatedM.ConfirmDialog.Step, updatedM.ConfirmDialog.Steps)
+		}
+
+		confirmedModel, _ := updatedM.Update(tea.KeyMsg{Type: tea.KeyEnter})
+		confirmed := confirmedModel.(MainModel)
+		if confirmed.State != StateConfirm {
+			t.Fatalf("expected second confirm prompt, got %v", confirmed.State)
+		}
+		if confirmed.ConfirmDialog.Step != 2 {
+			t.Fatalf("expected second confirm step, got %d", confirmed.ConfirmDialog.Step)
 		}
 	})
 }

@@ -1,2 +1,5 @@
 .env
+.bin/
+dist/
+cli
 ditto-cli

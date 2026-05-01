@@ -58,25 +58,27 @@ func (m RegisterModel) Update(msg tea.Msg) (RegisterModel, tea.Cmd) {
 			m.Email.Blur()
 			m.Password.Blur()
 			m.Confirm.Blur()
-			if m.Focused == 0 {
+			switch m.Focused {
+			case 0:
 				m.Username.Focus()
-			} else if m.Focused == 1 {
+			case 1:
 				m.Email.Focus()
-			} else if m.Focused == 2 {
+			case 2:
 				m.Password.Focus()
-			} else if m.Focused == 3 {
+			case 3:
 				m.Confirm.Focus()
 			}
 		}
 	}
 
-	if m.Focused == 0 {
+	switch m.Focused {
+	case 0:
 		m.Username, cmd = m.Username.Update(msg)
-	} else if m.Focused == 1 {
+	case 1:
 		m.Email, cmd = m.Email.Update(msg)
-	} else if m.Focused == 2 {
+	case 2:
 		m.Password, cmd = m.Password.Update(msg)
-	} else if m.Focused == 3 {
+	case 3:
 		m.Confirm, cmd = m.Confirm.Update(msg)
 	}
 

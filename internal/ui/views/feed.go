@@ -15,9 +15,29 @@ type PostItem struct {
 	types.Post
 }
 
-func (i PostItem) Title() string       { return i.Post.Title }
-func (i PostItem) Description() string { return i.Post.Content }
-func (i PostItem) FilterValue() string { return i.Post.Title + " " + i.Post.Author.Username }
+func (i PostItem) Title() string { return i.Post.Title }
+func (i PostItem) Description() string {
+	return fmt.Sprintf("u/%s in c/%s • ↑↓ %d • 💬 %d",
+		i.Author.Username,
+		i.Community.Name,
+		i.Scores.VoteScore,
+		i.Scores.CommentCount)
+}
+func (i PostItem) FilterValue() string { return i.Post.Title + " " + i.Author.Username }
+
+func RelativeTime(t time.Time) string {
+	d := time.Since(t)
+	if d < time.Minute {
+		return "just now"
+	}
+	if d < time.Hour {
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	}
+	if d < 24*time.Hour {
+		return fmt.Sprintf("%dh ago", int(d.Hours()))
+	}
+	return t.Format("Jan 02")
+}
 
 func RelativeTime(t time.Time) string {
 	d := time.Since(t)
@@ -47,33 +67,30 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	}
 
 	isSelected := index == m.Index()
-	
+
 	cardStyle := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("238")).
 		Padding(0, 1).
-		Width(m.Width() - 4)
+		Width(max(20, m.Width()-4))
 
 	if isSelected {
 		cardStyle = cardStyle.BorderForeground(lipgloss.Color("170"))
 	}
 
-	// Header: u/user in c/community • time
 	header := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
 		fmt.Sprintf("u/%s in c/%s • %s", i.Author.Username, i.Community.Name, RelativeTime(i.CreatedAt)),
 	)
 
-	// Title: Bold and colorful
 	titleStyle := lipgloss.NewStyle().Bold(true)
 	if isSelected {
 		titleStyle = titleStyle.Foreground(lipgloss.Color("170"))
 	}
 	title := titleStyle.Render(i.Title())
 
-	// Footer: stats
 	stats := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
-		fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d", 
-			i.Scores.VoteScore, 
+		fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d",
+			i.Scores.VoteScore,
 			i.Scores.CommentCount,
 			i.Scores.AwardCount),
 	)
@@ -85,7 +102,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		stats,
 	)
 
-	fmt.Fprint(w, cardStyle.Render(content))
+	_, _ = fmt.Fprint(w, cardStyle.Render(content))
 }
 
 type FeedModel struct {

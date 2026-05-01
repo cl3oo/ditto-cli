@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -19,8 +20,7 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestConfigSaveAndLoad(t *testing.T) {
-	tmpFile := "config_test.toml"
-	defer os.Remove(tmpFile)
+	tmpFile := filepath.Join(t.TempDir(), "config_test.toml")
 
 	ConfigPathOverride = tmpFile
 	defer func() { ConfigPathOverride = "" }()
@@ -44,5 +44,13 @@ func TestConfigSaveAndLoad(t *testing.T) {
 	}
 	if loaded.BaseURL != "http://test-api" {
 		t.Errorf("expected base URL http://test-api, got %s", loaded.BaseURL)
+	}
+
+	info, err := os.Stat(tmpFile)
+	if err != nil {
+		t.Fatalf("failed to stat config: %v", err)
+	}
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("expected config file mode 0600, got %o", info.Mode().Perm())
 	}
 }

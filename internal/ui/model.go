@@ -3,8 +3,6 @@ package ui
 import (
 	"errors"
 	"fmt"
-	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 
@@ -32,7 +30,32 @@ const (
 	StateEditCommunity
 	StateProfileSettings
 	StateHelp
+	StateConfirm
 )
+
+type ConfirmAction int
+
+const (
+	ConfirmNone ConfirmAction = iota
+	ConfirmDeletePost
+	ConfirmDeleteCommunity
+	ConfirmDeleteComment
+	ConfirmBanUser
+	ConfirmModDeletePost
+	ConfirmDeleteAccount
+)
+
+type ConfirmDialog struct {
+	Action      ConfirmAction
+	Previous    State
+	Title       string
+	Body        string
+	TargetID    string
+	TargetLabel string
+	Extra       string
+	Step        int
+	Steps       int
+}
 
 type MainModel struct {
 	State         State
@@ -60,6 +83,7 @@ type MainModel struct {
 	EditCommunityModel views.CreatePostModel
 	SettingsModel      views.SettingsModel
 	HelpModel          views.HelpModel
+	ConfirmDialog      ConfirmDialog
 }
 
 func NewMainModel(cfg *config.Config) MainModel {
@@ -100,6 +124,12 @@ func (m MainModel) Init() tea.Cmd {
 
 type tickMsg struct{}
 type statusMsg string
+type actionStatusMsg struct {
+	status    string
+	nextState State
+	refresh   string
+	postID    string
+}
 
 func (m MainModel) clearStatus() tea.Cmd {
 	return tea.Tick(3*time.Second, func(t time.Time) tea.Msg {
@@ -125,16 +155,35 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case statusMsg:
 		m.StatusMessage = string(msg)
 		var refreshCmd tea.Cmd
-		if m.State == StateFeed {
+		switch m.State {
+		case StateFeed:
 			refreshCmd = m.fetchFeed()
-		} else if m.State == StatePostDetail {
+		case StatePostDetail:
 			refreshCmd = m.fetchPostDetail(m.PostDetailModel.Post.ID)
+		}
+		return m, tea.Batch(refreshCmd, m.clearStatus())
+
+	case actionStatusMsg:
+		m.StatusMessage = msg.status
+		m.State = msg.nextState
+		var refreshCmd tea.Cmd
+		switch msg.refresh {
+		case "feed":
+			refreshCmd = m.fetchFeed()
+		case "communities":
+			refreshCmd = m.fetchCommunities()
+		case "post":
+			refreshCmd = m.fetchPostDetail(msg.postID)
 		}
 		return m, tea.Batch(refreshCmd, m.clearStatus())
 
 	case tea.KeyMsg:
 		if m.Error != nil {
 			m.Error = nil
+		}
+
+		if m.State == StateConfirm {
+			return m.handleConfirmKey(msg)
 		}
 
 		// Handle command buffer first (prefix :)
@@ -176,24 +225,41 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case ":r", ":refresh":
 					prevState := m.State
 					m.State = StateLoading
-					if prevState == StateFeed {
+					switch prevState {
+					case StateFeed:
 						return m, m.fetchFeed()
-					} else if prevState == StateCommunities {
+					case StateCommunities:
 						return m, m.fetchCommunities()
-					} else if prevState == StatePostDetail {
+					case StatePostDetail:
 						return m, m.fetchPostDetail(m.PostDetailModel.Post.ID)
 					}
 					// Default fallback if we don't know what to refresh
 					return m, m.fetchFeed()
 				case ":delete":
 					if m.State == StatePostDetail {
-						m.State = StateLoading
-						return m, m.performDeletePost(m.PostDetailModel.Post.ID)
+						return m.openConfirm(ConfirmDialog{
+							Action:      ConfirmDeletePost,
+							Previous:    StatePostDetail,
+							Title:       "Delete post?",
+							Body:        "This permanently removes the current post.",
+							TargetID:    m.PostDetailModel.Post.ID,
+							TargetLabel: m.PostDetailModel.Post.Title,
+							Step:        1,
+							Steps:       1,
+						}), nil
 					}
 					if m.State == StateCommunities {
 						if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
-							m.State = StateLoading
-							return m, m.performDeleteCommunity(item.ID)
+							return m.openConfirm(ConfirmDialog{
+								Action:      ConfirmDeleteCommunity,
+								Previous:    StateCommunities,
+								Title:       "Delete community?",
+								Body:        "This permanently removes the selected community.",
+								TargetID:    item.ID,
+								TargetLabel: item.Name,
+								Step:        1,
+								Steps:       1,
+							}), nil
 						}
 					}
 				case ":edit":
@@ -209,7 +275,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if m.State == StateCommunities {
 						if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
 							m.EditCommunityModel.Title.SetValue(item.Community.Title)
-							m.EditCommunityModel.CommunityID.SetValue(item.Community.Name)
+							m.EditCommunityModel.CommunityID.SetValue(item.Name)
 							m.EditCommunityModel.Content.SetValue(item.Community.Description)
 							m.EditCommunityModel.CommunityID.Blur()
 							m.EditCommunityModel.Title.Focus()
@@ -220,9 +286,10 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case ":random":
 					prevState := m.State
 					m.State = StateLoading
-					if prevState == StateFeed {
+					switch prevState {
+					case StateFeed:
 						return m, m.fetchRandomPosts()
-					} else if prevState == StateCommunities {
+					case StateCommunities:
 						return m, m.fetchRandomCommunities()
 					}
 					m.State = prevState
@@ -239,8 +306,16 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case ":ban":
 					if len(parts) > 1 {
 						username := parts[1]
-						m.State = StateLoading
-						return m, m.performBanUser(username)
+						return m.openConfirm(ConfirmDialog{
+							Action:      ConfirmBanUser,
+							Previous:    m.State,
+							Title:       "Ban user?",
+							Body:        "This removes the user from the current community.",
+							TargetID:    username,
+							TargetLabel: username,
+							Step:        1,
+							Steps:       1,
+						}), nil
 					}
 				case ":mod":
 					if len(parts) > 2 && parts[1] == "add" {
@@ -261,8 +336,17 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case ":mod-delete":
 					if m.State == StatePostDetail && len(parts) > 1 {
 						reason := strings.Join(parts[1:], " ")
-						m.State = StateLoading
-						return m, m.performModDeletePost(m.PostDetailModel.Post.ID, reason)
+						return m.openConfirm(ConfirmDialog{
+							Action:      ConfirmModDeletePost,
+							Previous:    StatePostDetail,
+							Title:       "Moderator delete post?",
+							Body:        "This removes the post using moderator powers.",
+							TargetID:    m.PostDetailModel.Post.ID,
+							TargetLabel: m.PostDetailModel.Post.Title,
+							Extra:       reason,
+							Step:        1,
+							Steps:       1,
+						}), nil
 					}
 				case ":award":
 					if m.State == StatePostDetail && len(parts) > 1 {
@@ -292,8 +376,17 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				case ":delete-comment":
 					if m.State == StatePostDetail && len(parts) > 1 {
-						m.State = StateLoading
-						return m, m.performDeleteComment(parts[1])
+						commentID := parts[1]
+						return m.openConfirm(ConfirmDialog{
+							Action:      ConfirmDeleteComment,
+							Previous:    StatePostDetail,
+							Title:       "Delete comment?",
+							Body:        "This permanently removes the selected comment.",
+							TargetID:    commentID,
+							TargetLabel: commentID,
+							Step:        1,
+							Steps:       1,
+						}), nil
 					}
 				case ":settings":
 					if m.Me != nil {
@@ -303,7 +396,16 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				case ":delete-account":
 					if m.Me != nil {
-						return m, m.performDeleteUser(m.Me.ID)
+						return m.openConfirm(ConfirmDialog{
+							Action:      ConfirmDeleteAccount,
+							Previous:    StateProfileSettings,
+							Title:       "Delete account?",
+							Body:        "This is irreversible. You'll be logged out and your account will be removed.",
+							TargetID:    m.Me.ID,
+							TargetLabel: m.Me.Username,
+							Step:        1,
+							Steps:       2,
+						}), nil
 					}
 				case ":cc":
 					if m.State == StatePostDetail {
@@ -906,6 +1008,58 @@ func (m MainModel) performRegister() tea.Cmd {
 	}
 }
 
+func (m MainModel) openConfirm(dialog ConfirmDialog) MainModel {
+	m.ConfirmDialog = dialog
+	m.State = StateConfirm
+	return m
+}
+
+func (m MainModel) closeConfirm() MainModel {
+	m.State = m.ConfirmDialog.Previous
+	m.ConfirmDialog = ConfirmDialog{}
+	return m
+}
+
+func (m MainModel) handleConfirmKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "esc", "q":
+		return m.closeConfirm(), nil
+	case "enter":
+		if m.ConfirmDialog.Action == ConfirmDeleteAccount && m.ConfirmDialog.Step < m.ConfirmDialog.Steps {
+			m.ConfirmDialog.Step++
+			m.ConfirmDialog.Title = "Delete account, really?"
+			m.ConfirmDialog.Body = "Second confirmation required. Press enter again only if you really want to permanently delete this account."
+			return m, nil
+		}
+		return m.executeConfirmedAction()
+	}
+
+	return m, nil
+}
+
+func (m MainModel) executeConfirmedAction() (tea.Model, tea.Cmd) {
+	dialog := m.ConfirmDialog
+	m.ConfirmDialog = ConfirmDialog{}
+	m.State = dialog.Previous
+
+	switch dialog.Action {
+	case ConfirmDeletePost:
+		return m, m.performDeletePost(dialog.TargetID)
+	case ConfirmDeleteCommunity:
+		return m, m.performDeleteCommunity(dialog.TargetID)
+	case ConfirmDeleteComment:
+		return m, m.performDeleteComment(dialog.TargetID, m.PostDetailModel.Post.ID)
+	case ConfirmBanUser:
+		return m, m.performBanUser(dialog.TargetID, dialog.Previous)
+	case ConfirmModDeletePost:
+		return m, m.performModDeletePost(dialog.TargetID, dialog.Extra, dialog.Previous)
+	case ConfirmDeleteAccount:
+		return m, m.performDeleteUser(dialog.TargetID)
+	default:
+		return m.closeConfirm(), nil
+	}
+}
+
 func (m MainModel) performUpdatePost() tea.Cmd {
 	return func() tea.Msg {
 		err := m.Client.UpdatePost(
@@ -926,7 +1080,7 @@ func (m MainModel) performDeletePost(id string) tea.Cmd {
 		if err != nil {
 			return errorMsg(err)
 		}
-		return statusMsg("Post deleted")
+		return actionStatusMsg{status: "Post deleted", nextState: StateFeed, refresh: "feed"}
 	}
 }
 
@@ -961,17 +1115,17 @@ func (m MainModel) performDeleteCommunity(id string) tea.Cmd {
 		if err != nil {
 			return errorMsg(err)
 		}
-		return statusMsg("Community deleted")
+		return actionStatusMsg{status: "Community deleted", nextState: StateCommunities, refresh: "communities"}
 	}
 }
 
-func (m MainModel) performDeleteComment(id string) tea.Cmd {
+func (m MainModel) performDeleteComment(id, postID string) tea.Cmd {
 	return func() tea.Msg {
 		err := m.Client.DeleteComment(id)
 		if err != nil {
 			return errorMsg(err)
 		}
-		return statusMsg("Comment deleted")
+		return actionStatusMsg{status: "Comment deleted", nextState: StatePostDetail, refresh: "post", postID: postID}
 	}
 }
 
@@ -1025,12 +1179,12 @@ func (m MainModel) performToggleFollow(userID string) tea.Cmd {
 	}
 }
 
-func (m MainModel) performBanUser(userID string) tea.Cmd {
+func (m MainModel) performBanUser(userID string, previous State) tea.Cmd {
 	return func() tea.Msg {
 		var communityID string
 		if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
 			communityID = item.ID
-		} else if m.State == StatePostDetail {
+		} else if previous == StatePostDetail {
 			communityID = m.PostDetailModel.Post.CommunityID
 		} else {
 			return errorMsg(errors.New("no community context for ban"))
@@ -1040,7 +1194,13 @@ func (m MainModel) performBanUser(userID string) tea.Cmd {
 		if err != nil {
 			return errorMsg(err)
 		}
-		return statusMsg("User banned from community")
+		refresh := "communities"
+		postID := ""
+		if previous == StatePostDetail {
+			refresh = "post"
+			postID = m.PostDetailModel.Post.ID
+		}
+		return actionStatusMsg{status: "User banned from community", nextState: previous, refresh: refresh, postID: postID}
 	}
 }
 
@@ -1073,13 +1233,19 @@ func (m MainModel) performLockPost(postID string, lock bool) tea.Cmd {
 	}
 }
 
-func (m MainModel) performModDeletePost(postID, reason string) tea.Cmd {
+func (m MainModel) performModDeletePost(postID, reason string, previous State) tea.Cmd {
 	return func() tea.Msg {
 		err := m.Client.ModDeletePost(postID, reason)
 		if err != nil {
 			return errorMsg(err)
 		}
-		return statusMsg("Post deleted by moderator")
+		nextState := previous
+		refresh := ""
+		if previous == StatePostDetail {
+			nextState = StateFeed
+			refresh = "feed"
+		}
+		return actionStatusMsg{status: "Post deleted by moderator", nextState: nextState, refresh: refresh}
 	}
 }
 
@@ -1134,21 +1300,13 @@ func (m MainModel) performDeleteUser(id string) tea.Cmd {
 		if err := m.Config.UpdateToken(""); err != nil {
 			return errorMsg(err)
 		}
-		return statusMsg("Account deleted")
+		return actionStatusMsg{status: "Account deleted", nextState: StateLogin}
 	}
 }
 
 func (m MainModel) performShare(url string) tea.Cmd {
 	return func() tea.Msg {
-		var err error
-		switch runtime.GOOS {
-		case "darwin":
-			err = exec.Command("sh", "-c", "echo "+url+" | pbcopy").Run()
-		case "linux":
-			err = exec.Command("sh", "-c", "echo "+url+" | xclip -selection clipboard").Run()
-		}
-
-		if err != nil {
+		if err := copyToClipboard(url); err != nil {
 			return statusMsg("Link: " + url)
 		}
 		return statusMsg("Link copied to clipboard!")

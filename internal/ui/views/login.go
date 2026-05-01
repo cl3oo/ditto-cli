@@ -45,22 +45,24 @@ func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
 		switch msg.String() {
 		case "tab", "shift+tab", "up", "down":
 			m.Focused = (m.Focused + 1) % 4
-			if m.Focused == 0 {
+			switch m.Focused {
+			case 0:
 				m.Username.Focus()
 				m.Password.Blur()
-			} else if m.Focused == 1 {
+			case 1:
 				m.Username.Blur()
 				m.Password.Focus()
-			} else {
+			default:
 				m.Username.Blur()
 				m.Password.Blur()
 			}
 		}
 	}
 
-	if m.Focused == 0 {
+	switch m.Focused {
+	case 0:
 		m.Username, cmd = m.Username.Update(msg)
-	} else if m.Focused == 1 {
+	case 1:
 		m.Password, cmd = m.Password.Update(msg)
 	}
 
@@ -80,8 +82,12 @@ func (m LoginModel) View() string {
 		s += m.Username.View() + "\n"
 		s += m.Password.View() + "\n\n"
 	} else {
-		s += lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Render("Welcome back! Here is your token:") + "\n"
-		s += lipgloss.NewStyle().Italic(true).Faint(true).Render(m.SuccessToken) + "\n\n"
+		displayToken := m.SuccessToken
+		if len(displayToken) > 8 {
+			displayToken = displayToken[:8] + "..."
+		}
+		s += lipgloss.NewStyle().Foreground(lipgloss.Color("81")).Render("Welcome back! Your session token was saved.") + "\n"
+		s += lipgloss.NewStyle().Italic(true).Faint(true).Render(displayToken) + "\n\n"
 	}
 
 	submitLabel := "[ Submit ]"

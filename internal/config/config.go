@@ -8,6 +8,11 @@ import (
 	"github.com/BurntSushi/toml"
 )
 
+const (
+	configDirPerm  = 0o700
+	configFilePerm = 0o600
+)
+
 type Config struct {
 	Token      string           `toml:"token"`
 	BaseURL    string           `toml:"base_url"`
@@ -49,7 +54,10 @@ func GetConfigPath() (string, error) {
 		return "", err
 	}
 	path := filepath.Join(home, ".config", "ditto-cli")
-	if err := os.MkdirAll(path, 0755); err != nil {
+	if err := os.MkdirAll(path, configDirPerm); err != nil {
+		return "", err
+	}
+	if err := os.Chmod(path, configDirPerm); err != nil {
 		return "", err
 	}
 	return filepath.Join(path, "config.toml"), nil
@@ -119,16 +127,32 @@ func (c *Config) Save() error {
 		return err
 	}
 
+	parentDir := filepath.Dir(path)
+	if parentDir != "." && parentDir != "" {
+		if err := os.MkdirAll(parentDir, configDirPerm); err != nil {
+			return err
+		}
+		if err := os.Chmod(parentDir, configDirPerm); err != nil {
+			return err
+		}
+	}
+
 	// For debugging token persistence
 	if os.Getenv("DEBUG_CONFIG") != "" {
 		fmt.Fprintf(os.Stderr, "Saving config to: %s\n", path)
 	}
 
-	f, err := os.Create(path)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, configFilePerm)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
+
+	if err := f.Chmod(configFilePerm); err != nil {
+		return err
+	}
 
 	return toml.NewEncoder(f).Encode(c)
 }

@@ -6,6 +6,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func maskToken(token string) string {
+	if len(token) <= 8 {
+		return token
+	}
+	return token[:8] + "..."
+}
+
 var (
 	username string
 	password string
@@ -32,7 +39,7 @@ var loginCmd = &cobra.Command{
 			return fmt.Errorf("error saving config: %w", err)
 		}
 
-		fmt.Printf("Logged in successfully. Token: %s\n", token)
+		fmt.Printf("Logged in successfully. Token: %s\n", maskToken(token))
 		return nil
 	},
 }
