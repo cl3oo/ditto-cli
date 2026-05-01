@@ -1,4 +1,4 @@
-.PHONY: run build test lint clean
+.PHONY: run build test lint smoke clean
 
 GOBIN ?= $(CURDIR)/.bin
 DIST_DIR ?= $(CURDIR)/dist
@@ -23,6 +23,9 @@ $(GOLANGCI_LINT):
 
 lint: $(GOLANGCI_LINT)
 	$(GOLANGCI_LINT) run
+
+smoke: build
+	./scripts/smoke.sh
 
 clean:
 	rm -rf $(DIST_DIR)
