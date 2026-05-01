@@ -166,7 +166,11 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 	}
 
 	if target != nil {
-		if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+		bodyBits, _ := io.ReadAll(resp.Body)
+		if c.Logger != nil && len(bodyBits) > 0 {
+			c.Logger.Printf("Response Body: %s", string(bodyBits))
+		}
+		if err := json.Unmarshal(bodyBits, target); err != nil {
 			return fmt.Errorf("decode response: %w", err)
 		}
 	}
@@ -185,9 +189,11 @@ func (c *Client) Login(username, password string) (string, error) {
                 return "", err
         }
 
-        if res.Token != "" {
-                c.SetToken(res.Token)
+        if res.Token == "" {
+                return "", fmt.Errorf("API returned empty token")
         }
+
+        c.SetToken(res.Token)
         return res.Token, nil
 }
 
@@ -203,9 +209,11 @@ func (c *Client) Register(username, email, password string) (string, error) {
                 return "", err
         }
 
-        if res.Token != "" {
-                c.SetToken(res.Token)
+        if res.Token == "" {
+                return "", fmt.Errorf("API returned empty token")
         }
+
+        c.SetToken(res.Token)
         return res.Token, nil
 }
 

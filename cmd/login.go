@@ -25,12 +25,14 @@ var loginCmd = &cobra.Command{
 		}
 
 		cfg.Token = token
-		cfg.BaseURL = baseURL
+		if baseURL != "" {
+			cfg.BaseURL = baseURL
+		}
 		if err := cfg.Save(); err != nil {
 			return fmt.Errorf("error saving config: %w", err)
 		}
 
-		fmt.Println("Logged in successfully")
+		fmt.Printf("Logged in successfully. Token: %s\n", token)
 		return nil
 	},
 }

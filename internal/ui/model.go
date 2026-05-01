@@ -464,12 +464,18 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case loginSuccessMsg:
 		m.State = StateFeed
-		m.Client.SetToken(string(msg))
+		token := string(msg)
+		m.Client.SetToken(token)
 		
 		// Persist token
-		m.Config.UpdateToken(string(msg))
+		m.Config.UpdateToken(token)
 		
-		return m, tea.Batch(m.fetchFeed(), m.fetchMe(), m.fetchWallet())
+		displayToken := token
+		if len(token) > 8 {
+			displayToken = token[:8] + "..."
+		}
+		m.StatusMessage = fmt.Sprintf("Logged in! Token: %s", displayToken)
+		return m, tea.Batch(m.fetchFeed(), m.fetchMe(), m.fetchWallet(), m.clearStatus())
 
 	case meMsg:
 		m.Me = (*types.User)(msg)
