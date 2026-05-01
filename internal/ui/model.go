@@ -504,13 +504,20 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case errorMsg:
 		if errors.Is(msg, api.ErrUnauthorized) {
-			if m.Client.Token != "" {
-				m.StatusMessage = "Session expired, please login again"
-				m.Client.SetToken("")
-				m.Config.UpdateToken("")
-			}
-			if m.State != StateLogin && m.State != StateRegister {
-				m.State = StateLogin
+			// If we are loading and get unauthorized, maybe only one request failed.
+			// Don't wipe the token immediately during initial boot unless we are sure.
+			if m.State != StateLoading {
+				if m.Client.Token != "" {
+					m.StatusMessage = "Session expired, please login again"
+					m.Client.SetToken("")
+					_ = m.Config.UpdateToken("")
+				}
+				if m.State != StateLogin && m.State != StateRegister {
+					m.State = StateLogin
+				}
+			} else {
+				// If we are loading, just show error but keep the token for now
+				m.StatusMessage = "Some profile data failed to load (Unauthorized)"
 			}
 			return m, m.clearStatus()
 		}

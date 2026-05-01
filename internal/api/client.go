@@ -51,21 +51,7 @@ func NewClientWithLogger(baseURL string, logger *log.Logger) *Client {
 	c.HTTPClient = &http.Client{
 		Timeout: 15 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if logger != nil {
-				logger.Printf("Redirecting to: %s", req.URL)
-			}
-			if len(via) >= 10 {
-				return errors.New("stopped after 10 redirects")
-			}
-			// Copy headers from the last request (including Authorization)
-			if len(via) > 0 {
-				for key, val := range via[len(via)-1].Header {
-					if key == "Authorization" || key == "Content-Type" {
-						req.Header[key] = val
-					}
-				}
-			}
-			return nil
+			return http.ErrUseLastResponse
 		},
 	}
 	return c
