@@ -32,33 +32,70 @@ type communityDelegate struct {
 	Theme lipgloss.Style
 }
 
-func (d communityDelegate) Height() int                               { return 2 }
+func (d communityDelegate) Height() int                               { return 5 }
 func (d communityDelegate) Spacing() int                              { return 1 }
 func (d communityDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
 func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
-	var titleStr, descStr string
+	isSelected := index == m.Index()
+
+	cardStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("238")).
+		Padding(0, 1).
+		Width(max(20, m.Width()-4))
+
+	if isSelected {
+		cardStyle = cardStyle.BorderForeground(lipgloss.Color("170"))
+	}
+
+	var header, title, stats string
 
 	if i, ok := listItem.(CommunityItem); ok {
-		titleStr = i.Title()
-		descStr = i.Description()
+		header = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+			fmt.Sprintf("Community • Created %s", RelativeTime(i.CreatedAt)),
+		)
+		titleStyle := lipgloss.NewStyle().Bold(true)
+		if isSelected {
+			titleStyle = titleStyle.Foreground(lipgloss.Color("170"))
+		}
+		title = titleStyle.Render(i.Title() + ": " + i.Community.Title)
+		stats = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+			fmt.Sprintf("👥 %d members • 📝 %d posts", i.Scores.SubCount, i.Scores.PostCount),
+		)
 	} else if i, ok := listItem.(UserItem); ok {
-		titleStr = i.Title()
-		descStr = i.Description()
+		header = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+			fmt.Sprintf("User • Joined %s", RelativeTime(i.CreatedAt)),
+		)
+		titleStyle := lipgloss.NewStyle().Bold(true)
+		if isSelected {
+			titleStyle = titleStyle.Foreground(lipgloss.Color("170"))
+		}
+		title = titleStyle.Render(i.Title())
+		stats = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(i.Description())
 	} else if i, ok := listItem.(PostItem); ok {
-		titleStr = i.Title()
-		descStr = i.Description()
+		header = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+			fmt.Sprintf("u/%s in c/%s • %s", i.Author.Username, i.Community.Name, RelativeTime(i.CreatedAt)),
+		)
+		titleStyle := lipgloss.NewStyle().Bold(true)
+		if isSelected {
+			titleStyle = titleStyle.Foreground(lipgloss.Color("170"))
+		}
+		title = titleStyle.Render(i.Title())
+		stats = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(
+			fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d", i.Scores.VoteScore, i.Scores.CommentCount, i.Scores.AwardCount),
+		)
 	} else {
 		return
 	}
 
-	title := lipgloss.NewStyle().Bold(true).Render(titleStr)
-	desc := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(descStr)
+	content := lipgloss.JoinVertical(lipgloss.Left,
+		header,
+		title,
+		"",
+		stats,
+	)
 
-	if index == m.Index() {
-		title = d.Theme.Render(titleStr)
-	}
-
-	_, _ = fmt.Fprintf(w, "  %s\n  %s", title, desc)
+	fmt.Fprint(w, cardStyle.Render(content))
 }
 
 type CommunityModel struct {
