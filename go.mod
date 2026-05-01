@@ -1,6 +1,6 @@
 module github.com/rfcku/ditto-cli
 
-go 1.26.2
+go 1.25
 
 require (
 	github.com/BurntSushi/toml v1.6.0
