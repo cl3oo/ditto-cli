@@ -10,6 +10,7 @@ A powerful terminal-based user interface (TUI) for the Ditto social platform. Bu
 - 🏘 **Communities**: Browse and join communities.
 - 👤 **Profile**: View your wallet balance and user details.
 - ⌨️ **Keyboard Optimized**: Fast navigation with vim-like bindings or arrows.
+- 🧭 **Contextual Help Bar**: A sticky footer advertises the most useful actions for the current screen.
 
 ## Installation
 
@@ -80,6 +81,8 @@ While in the TUI, press `:` to enter command mode:
 | `:q`, `:quit` | Exit the application |
 
 ### Navigation & Shortcuts
+
+The TUI also keeps a sticky footer at the bottom with context-aware hints, so the current screen tells you what matters without opening the manual.
 
 - **j / k** or **Up / Down**: Navigate lists.
 - **Enter**: Select or submit.
