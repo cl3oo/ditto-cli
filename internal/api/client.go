@@ -19,6 +19,8 @@ import (
 	"github.com/rfcku/ditto-cli/internal/types"
 )
 
+const logFilePerm = 0o600
+
 var (
 	ErrUnauthorized = errors.New("unauthorized")
 	ErrNotFound     = errors.New("not found")
@@ -34,9 +36,14 @@ type Client struct {
 func NewClient(baseURL string) *Client {
 	var logger *log.Logger
 	home, _ := os.UserHomeDir()
-	logPath := filepath.Join(home, ".config", "ditto-cli", "ditto.log")
-	if logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666); err == nil {
-		logger = log.New(logFile, "[API] ", log.Ldate|log.Ltime|log.Lshortfile)
+	logDir := filepath.Join(home, ".config", "ditto-cli")
+	logPath := filepath.Join(logDir, "ditto.log")
+	if err := os.MkdirAll(logDir, 0o700); err == nil {
+		_ = os.Chmod(logDir, 0o700)
+		if logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, logFilePerm); err == nil {
+			_ = logFile.Chmod(logFilePerm)
+			logger = log.New(logFile, "[API] ", log.Ldate|log.Ltime|log.Lshortfile)
+		}
 	}
 
 	return NewClientWithLogger(baseURL, logger)
@@ -90,7 +97,7 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 	if c.Logger != nil {
 		c.Logger.Printf("--> %s %s", method, url)
 		if len(bodyBytes) > 0 {
-			c.Logger.Printf("Body: %s", string(bodyBytes))
+			c.Logger.Printf("Body: %s", redactSensitiveText(string(bodyBytes)))
 		}
 	}
 
@@ -144,9 +151,9 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 	bodyBits, _ := io.ReadAll(resp.Body)
 	if c.Logger != nil && len(bodyBits) > 0 {
 		if resp.StatusCode >= 400 {
-			c.Logger.Printf("Error Body: %s", string(bodyBits))
-		} else {
-			c.Logger.Printf("Response Body: %s", string(bodyBits))
+			c.Logger.Printf("Error Body: %s", redactSensitiveText(string(bodyBits)))
+		} else if httpDebugEnabled() {
+			c.Logger.Printf("Response Body: %s", redactSensitiveText(string(bodyBits)))
 		}
 	}
 
@@ -172,6 +179,54 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 	}
 
 	return nil
+}
+
+func httpDebugEnabled() bool {
+	value := strings.TrimSpace(strings.ToLower(os.Getenv("DITTO_DEBUG_HTTP")))
+	return value == "1" || value == "true" || value == "yes" || value == "on"
+}
+
+func redactSensitiveText(raw string) string {
+	var payload interface{}
+	if err := json.Unmarshal([]byte(raw), &payload); err == nil {
+		redactValue(&payload)
+		if cleaned, err := json.Marshal(payload); err == nil {
+			return string(cleaned)
+		}
+	}
+	return raw
+}
+
+func redactValue(value *interface{}) {
+	switch v := (*value).(type) {
+	case map[string]interface{}:
+		for key, inner := range v {
+			if isSensitiveKey(key) {
+				v[key] = "[REDACTED]"
+				continue
+			}
+			innerCopy := inner
+			redactValue(&innerCopy)
+			v[key] = innerCopy
+		}
+	case []interface{}:
+		for i, inner := range v {
+			innerCopy := inner
+			redactValue(&innerCopy)
+			v[i] = innerCopy
+		}
+	}
+}
+
+func isSensitiveKey(key string) bool {
+	key = strings.ToLower(strings.TrimSpace(key))
+	sensitive := []string{"token", "password", "authorization", "secret", "access_token", "refresh_token"}
+	for _, fragment := range sensitive {
+		if strings.Contains(key, fragment) {
+			return true
+		}
+	}
+	return false
 }
 
 func (c *Client) Login(username, password string) (string, error) {
