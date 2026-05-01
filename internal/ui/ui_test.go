@@ -107,6 +107,55 @@ func TestMainModel_RenderFooterHelp(t *testing.T) {
 	}
 }
 
+func TestMainModel_View_EmptyStates(t *testing.T) {
+	cfg := config.DefaultConfig()
+
+	tests := []struct {
+		name     string
+		state    State
+		setup    func(*MainModel)
+		contains []string
+	}{
+		{
+			name:  "feed empty state shows actionable hints",
+			state: StateFeed,
+			setup: func(m *MainModel) {
+				m.FeedModel.Loaded = true
+				m.FeedModel.List.SetItems(nil)
+			},
+			contains: []string{"No posts yet", ":random discover posts", "n create a post"},
+		},
+		{
+			name:  "communities empty state shows discovery hints",
+			state: StateCommunities,
+			setup: func(m *MainModel) {
+				m.CommunityModel.Loaded = true
+				m.CommunityModel.List.SetItems(nil)
+			},
+			contains: []string{"No communities to show", ":random discover communities", ":joined show joined communities"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewMainModel(cfg)
+			m.Width = 100
+			m.Height = 30
+			m.State = tt.state
+			if tt.setup != nil {
+				tt.setup(&m)
+			}
+
+			view := m.View()
+			for _, want := range tt.contains {
+				if !strings.Contains(view, want) {
+					t.Fatalf("view %q missing %q", view, want)
+				}
+			}
+		})
+	}
+}
+
 func TestMainModel_RenderConfirmDialog(t *testing.T) {
 	cfg := config.DefaultConfig()
 	m := NewMainModel(cfg)
