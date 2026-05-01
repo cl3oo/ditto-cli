@@ -40,6 +40,8 @@ func (m MainModel) View() string {
 		content = m.RegisterModel.View()
 	case StateSelection:
 		content = m.renderSelectionMenu()
+	case StateConfirm:
+		content = m.renderConfirmDialog()
 	}
 	s.WriteString(content)
 
@@ -116,6 +118,8 @@ func (m MainModel) renderFooterHelp() string {
 		local = []string{"p post", "c community", "esc cancel"}
 	case StateLoading:
 		local = []string{"wait", "q quit"}
+	case StateConfirm:
+		local = []string{"enter confirm", "q cancel", "esc cancel"}
 	}
 
 	section := func(title string, items []string, titleStyle, itemStyle lipgloss.Style) string {
@@ -175,6 +179,8 @@ func (m MainModel) renderHeader() string {
 		bc += "> REGISTER "
 	case StateSelection:
 		bc += "> SELECT "
+	case StateConfirm:
+		bc += "> CONFIRM "
 	}
 
 	header := m.Theme.Title.Render(bc)
@@ -192,4 +198,40 @@ func (m MainModel) renderHeader() string {
 			Render("(" + userStr + ")")
 	}
 	return header
+}
+
+func (m MainModel) renderConfirmDialog() string {
+	stepLabel := ""
+	if m.ConfirmDialog.Steps > 1 {
+		stepLabel = fmt.Sprintf(" (%d/%d)", m.ConfirmDialog.Step, m.ConfirmDialog.Steps)
+	}
+
+	var lines []string
+	lines = append(lines, m.Theme.Error.Bold(true).Render(" Confirm action"+stepLabel))
+	lines = append(lines, "")
+	lines = append(lines, m.Theme.Selected.Render(m.ConfirmDialog.Title))
+	lines = append(lines, m.ConfirmDialog.Body)
+	if m.ConfirmDialog.TargetLabel != "" {
+		lines = append(lines, "")
+		lines = append(lines, "Target: "+m.ConfirmDialog.TargetLabel)
+	}
+	if m.ConfirmDialog.Extra != "" {
+		lines = append(lines, "Reason: "+m.ConfirmDialog.Extra)
+	}
+	lines = append(lines, "")
+	lines = append(lines, "Enter to continue, q or esc to cancel.")
+
+	box := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(m.Theme.Error.GetForeground()).
+		Padding(1, 2).
+		Width(min(max(60, m.Width-12), 90))
+
+	return lipgloss.Place(
+		max(0, m.Width),
+		max(0, m.Height-6),
+		lipgloss.Center,
+		lipgloss.Center,
+		box.Render(strings.Join(lines, "\n")),
+	)
 }

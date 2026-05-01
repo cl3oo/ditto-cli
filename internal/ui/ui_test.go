@@ -82,6 +82,11 @@ func TestMainModel_RenderFooterHelp(t *testing.T) {
 			state:    StateHelp,
 			contains: []string{"j/k scroll", "q close manual"},
 		},
+		{
+			name:     "confirm footer shows confirm controls",
+			state:    StateConfirm,
+			contains: []string{"enter confirm", "q cancel", "esc cancel"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -99,5 +104,28 @@ func TestMainModel_RenderFooterHelp(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestMainModel_RenderConfirmDialog(t *testing.T) {
+	cfg := config.DefaultConfig()
+	m := NewMainModel(cfg)
+	m.Width = 100
+	m.Height = 30
+	m.State = StateConfirm
+	m.ConfirmDialog = ConfirmDialog{
+		Action:      ConfirmDeleteAccount,
+		Title:       "Delete account?",
+		Body:        "This is irreversible.",
+		TargetLabel: "tester",
+		Step:        2,
+		Steps:       2,
+	}
+
+	view := m.renderConfirmDialog()
+	for _, want := range []string{"Confirm action (2/2)", "Delete account?", "Target: tester", "Enter to continue"} {
+		if !strings.Contains(view, want) {
+			t.Fatalf("confirm dialog %q missing %q", view, want)
+		}
 	}
 }
