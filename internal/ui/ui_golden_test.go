@@ -71,12 +71,12 @@ func TestGoldenPostDetailLargeContent(t *testing.T) {
 
 	now := time.Now()
 	post := types.Post{
-		ID:      "post-42",
-		Title:   "Shipping snapshot coverage without making the TUI miserable",
-		Content: "This post body is intentionally long so the renderer has to wrap paragraphs across multiple lines.\n\nIt also includes a second paragraph to make sure markdown rendering stays readable in a constrained viewport.",
-		Author:  types.UserMin{ID: "u-1", Username: "guide"},
+		ID:        "post-42",
+		Title:     "Shipping snapshot coverage without making the TUI miserable",
+		Content:   "This post body is intentionally long so the renderer has to wrap paragraphs across multiple lines.\n\nIt also includes a second paragraph to make sure markdown rendering stays readable in a constrained viewport.",
+		Author:    types.UserMin{ID: "u-1", Username: "guide"},
 		Community: types.CommunityMin{ID: "c-1", Name: "ditto"},
-		Scores: types.Score{VoteScore: 12, CommentCount: 3, AwardCount: 1},
+		Scores:    types.Score{VoteScore: 12, CommentCount: 3, AwardCount: 1},
 		CreatedAt: now.Add(-2 * time.Hour),
 	}
 	comments := []types.Comment{
