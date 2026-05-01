@@ -1,11 +1,17 @@
 package ui
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rfcku/ditto-cli/internal/api"
 	"github.com/rfcku/ditto-cli/internal/config"
+	"github.com/rfcku/ditto-cli/internal/types"
+	"github.com/rfcku/ditto-cli/internal/ui/views"
 )
 
 func TestNewMainModel(t *testing.T) {
@@ -176,5 +182,68 @@ func TestMainModel_RenderConfirmDialog(t *testing.T) {
 		if !strings.Contains(view, want) {
 			t.Fatalf("confirm dialog %q missing %q", view, want)
 		}
+	}
+}
+
+func TestMainModel_Update_EnterOnSearchPostOpensPostDetail(t *testing.T) {
+	cfg := config.DefaultConfig()
+	m := NewMainModel(cfg)
+	m.State = StateCommunities
+	m.CommunityModel.SetItems([]list.Item{views.PostItem{Post: types.Post{ID: "post-1", Title: "Search Result"}}})
+
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updatedModel := newModel.(MainModel)
+
+	if updatedModel.State != StateLoading {
+		t.Fatalf("expected state %v, got %v", StateLoading, updatedModel.State)
+	}
+	if cmd == nil {
+		t.Fatal("expected fetchPostDetail command")
+	}
+}
+
+func TestMainModel_PerformSearch_ReturnsPartialResultsWhenPostSearchFails(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasPrefix(r.URL.Path, "/search"):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"data":[{"id":"c1","name":"golang","title":"Go","scores":{"sub_count":5,"post_count":2}}]}`))
+		case strings.HasPrefix(r.URL.Path, "/posts"):
+			http.Error(w, `{"error":"search unsupported"}`, http.StatusBadRequest)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	m := NewMainModel(config.DefaultConfig())
+	m.Client = api.NewClient(server.URL)
+
+	msg := m.performSearch("go")()
+	search, ok := msg.(searchMsg)
+	if !ok {
+		t.Fatalf("expected searchMsg, got %T", msg)
+	}
+	if len(search) != 1 {
+		t.Fatalf("expected 1 partial result, got %d", len(search))
+	}
+}
+
+func TestMainModel_PerformSearch_ReturnsErrorWhenAllSearchesFail(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, `{"error":"broken"}`, http.StatusBadRequest)
+	}))
+	defer server.Close()
+
+	m := NewMainModel(config.DefaultConfig())
+	m.Client = api.NewClient(server.URL)
+
+	msg := m.performSearch("go")()
+	err, ok := msg.(errorMsg)
+	if !ok {
+		t.Fatalf("expected errorMsg, got %T", msg)
+	}
+	if !strings.Contains(err.Error(), "community search failed") || !strings.Contains(err.Error(), "post search failed") {
+		t.Fatalf("unexpected error message: %v", err)
 	}
 }

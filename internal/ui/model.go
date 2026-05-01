@@ -657,9 +657,13 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			if m.State == StateCommunities {
-				if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
+				switch item := m.CommunityModel.List.SelectedItem().(type) {
+				case views.CommunityItem:
 					m.State = StateLoading
 					return m, m.fetchCommunityDetail(item.ID)
+				case views.PostItem:
+					m.State = StateLoading
+					return m, m.fetchPostDetail(item.ID)
 				}
 			}
 			if m.State == StatePostDetail {
@@ -938,8 +942,8 @@ func (m MainModel) performLogin() tea.Cmd {
 
 func (m MainModel) performSearch(query string) tea.Cmd {
 	return func() tea.Msg {
-		communities, _ := m.Client.SearchCommunities(query)
-		posts, _ := m.Client.SearchPosts(query)
+		communities, communitiesErr := m.Client.SearchCommunities(query)
+		posts, postsErr := m.Client.SearchPosts(query)
 
 		var items []list.Item
 		for _, c := range communities {
@@ -949,11 +953,22 @@ func (m MainModel) performSearch(query string) tea.Cmd {
 			items = append(items, views.PostItem{Post: p})
 		}
 
-		if len(items) == 0 {
-			return errorMsg(fmt.Errorf("no results found for '%s'", query))
+		if len(items) > 0 {
+			return searchMsg(items)
 		}
 
-		return searchMsg(items)
+		var errs []string
+		if communitiesErr != nil {
+			errs = append(errs, fmt.Sprintf("community search failed: %v", communitiesErr))
+		}
+		if postsErr != nil {
+			errs = append(errs, fmt.Sprintf("post search failed: %v", postsErr))
+		}
+		if len(errs) > 0 {
+			return errorMsg(fmt.Errorf("%s", strings.Join(errs, "; ")))
+		}
+
+		return errorMsg(fmt.Errorf("no results found for '%s'", query))
 	}
 }
 

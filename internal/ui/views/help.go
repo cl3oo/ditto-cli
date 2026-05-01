@@ -69,7 +69,7 @@ Press **:** to enter command mode:
 - **:feed**: Go to the trending feed.
 - **:communities**: View all communities.
 - **:new**: Create a new post.
-- **:search <query>**: Search for communities.
+- **:search <query>**: Search for communities and posts.
 - **:settings**: Edit your profile (avatar).
 - **:logout**: Log out of your account.
 - **:q** or **:quit**: Exit the application.
