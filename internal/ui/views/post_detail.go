@@ -28,6 +28,7 @@ type PostDetailModel struct {
 	CommentInput     textinput.Model
 	ShowCommentInput bool
 	Ready            bool
+	Page             int
 	Width            int
 	Height           int
 	Theme            PostDetailTheme
@@ -94,18 +95,37 @@ func (m PostDetailModel) View() string {
 		return "  Loading post..."
 	}
 	
-	v := m.Viewport.View()
-	if m.ShowCommentInput {
-		return lipgloss.JoinVertical(lipgloss.Left,
-			v,
-			"\n"+lipgloss.NewStyle().
-				Border(lipgloss.NormalBorder(), true, false, false, false).
-				BorderForeground(lipgloss.Color("241")).
-				Padding(1, 1).
-				Render(m.CommentInput.View()),
-		)
+	var actionMenu string
+	if !m.ShowCommentInput {
+		if m.SelectedIdx == -1 {
+			actionMenu = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("241")).
+				Render("Actions: (r)eply • (p)rofile • (s)hare • (R)eport • (L)oad more")
+		} else {
+			author := m.FlattenedComments[m.SelectedIdx].Author.Username
+			actionMenu = lipgloss.NewStyle().
+				Foreground(lipgloss.Color("170")).
+				Bold(true).
+				Render(fmt.Sprintf("Comment by u/%s: (r)eply • (p)rofile • (s)hare • (R)eport", author))
+		}
 	}
-	return v
+
+	v := m.Viewport.View()
+	
+	var footer string
+	if m.ShowCommentInput {
+		footer = "\n" + lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder(), true, false, false, false).
+			BorderForeground(lipgloss.Color("241")).
+			Padding(1, 1).
+			Render(m.CommentInput.View())
+	} else {
+		footer = "\n" + lipgloss.NewStyle().
+			Padding(0, 2).
+			Render(actionMenu)
+	}
+
+	return lipgloss.JoinVertical(lipgloss.Left, v, footer)
 }
 
 func (m *PostDetailModel) SetContent(post types.Post, comments []types.Comment) {
@@ -115,6 +135,14 @@ func (m *PostDetailModel) SetContent(post types.Post, comments []types.Comment) 
 	m.flattenComments(comments, 0)
 	m.Ready = true
 	m.SelectedIdx = -1
+	m.Page = 1
+	m.render()
+}
+
+func (m *PostDetailModel) AppendComments(comments []types.Comment) {
+	m.Comments = append(m.Comments, comments...)
+	m.flattenComments(comments, 0)
+	m.Page++
 	m.render()
 }
 
@@ -142,11 +170,7 @@ func (m *PostDetailModel) SetSize(width, height int) {
 	m.Width = width
 	m.Height = height
 	m.Viewport.Width = width
-	if m.ShowCommentInput {
-		m.Viewport.Height = height - 5 // Reserved for comment input
-	} else {
-		m.Viewport.Height = height
-	}
+	m.Viewport.Height = height - 3 // Reserved for footer
 	m.CommentInput.Width = width - 4
 	if m.Ready {
 		m.render()
@@ -214,7 +238,7 @@ func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) st
 	var s strings.Builder
 	authorStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62"))
 	scoreStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
-	contentStyle := lipgloss.NewStyle().PaddingLeft(c.Depth * 2)
+	contentStyle := lipgloss.NewStyle().PaddingLeft(c.Depth * 2 + 2)
 
 	if selected {
 		authorStyle = authorStyle.Background(lipgloss.Color("235"))

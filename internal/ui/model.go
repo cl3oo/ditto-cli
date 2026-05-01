@@ -414,6 +414,30 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.StatusMessage = "Viewing profile for u/" + username + " (Coming soon!)"
 				return m, m.clearStatus()
 			}
+		case msg.String() == "s":
+			if m.State == StatePostDetail && !m.PostDetailModel.ShowCommentInput {
+				url := fmt.Sprintf("%s/posts/%s", m.Client.BaseURL, m.PostDetailModel.Post.ID)
+				return m, m.performShare(url)
+			}
+		case msg.String() == "R":
+			if m.State == StatePostDetail && !m.PostDetailModel.ShowCommentInput {
+				var targetID string
+				var targetType int
+				if m.PostDetailModel.SelectedIdx >= 0 {
+					targetID = m.PostDetailModel.FlattenedComments[m.PostDetailModel.SelectedIdx].ID
+					targetType = 3 // Comment
+				} else {
+					targetID = m.PostDetailModel.Post.ID
+					targetType = 2 // Post
+				}
+				m.State = StateLoading
+				return m, m.performReport(targetID, targetType, "Reported from TUI")
+			}
+		case msg.String() == "L":
+			if m.State == StatePostDetail && !m.PostDetailModel.ShowCommentInput {
+				m.State = StateLoading
+				return m, m.fetchMoreComments()
+			}
 		case key.Matches(msg, m.Keys.Back):
 			if msg.String() == "backspace" {
 				// Don't go back if we are typing in an input
@@ -533,6 +557,11 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.PostDetailModel.SetShowCommentInput(false)
 		return m, nil
 
+	case appendCommentsMsg:
+		m.State = StatePostDetail
+		m.PostDetailModel.AppendComments(msg)
+		return m, nil
+
 	case loginSuccessMsg:
 		token := string(msg)
 		m.Client.SetToken(token)
@@ -648,6 +677,7 @@ type postDetailMsg struct {
 	post     types.Post
 	comments []types.Comment
 }
+type appendCommentsMsg []types.Comment
 type loginSuccessMsg string
 type commentSuccessMsg string
 type meMsg *types.User
@@ -706,6 +736,18 @@ func (m MainModel) fetchPostDetail(id string) tea.Cmd {
 			return postDetailMsg{post: *post, comments: []types.Comment{}}
 		}
 		return postDetailMsg{post: *post, comments: comments}
+	}
+}
+
+func (m MainModel) fetchMoreComments() tea.Cmd {
+	return func() tea.Msg {
+		id := m.PostDetailModel.Post.ID
+		page := m.PostDetailModel.Page + 1
+		comments, err := m.Client.GetComments(id, page, 50)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return appendCommentsMsg(comments)
 	}
 }
 
