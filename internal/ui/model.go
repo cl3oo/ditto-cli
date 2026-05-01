@@ -48,12 +48,12 @@ type MainModel struct {
 	Wallet        *types.Wallet
 
 	// Sub-models
-	FeedModel       views.FeedModel
-	LoginModel      views.LoginModel
-	RegisterModel   views.RegisterModel
-	PostDetailModel views.PostDetailModel
-	CommunityModel  views.CommunityModel
-	CreatePostModel views.CreatePostModel
+	FeedModel          views.FeedModel
+	LoginModel         views.LoginModel
+	RegisterModel      views.RegisterModel
+	PostDetailModel    views.PostDetailModel
+	CommunityModel     views.CommunityModel
+	CreatePostModel    views.CreatePostModel
 	EditPostModel      views.CreatePostModel
 	EditCommunityModel views.CreatePostModel
 	SettingsModel      views.SettingsModel
@@ -61,17 +61,17 @@ type MainModel struct {
 
 func NewMainModel(cfg *config.Config) MainModel {
 	m := MainModel{
-		State:           StateLoading,
-		Client:          api.NewClient(cfg.BaseURL),
-		Config:          cfg,
-		Theme:           NewTheme(cfg.Appearance),
-		Keys:            NewKeyMap(cfg.Keys),
-		FeedModel:       views.NewFeedModel(),
-		LoginModel:      views.NewLoginModel(),
-		RegisterModel:   views.NewRegisterModel(),
-		PostDetailModel: views.NewPostDetailModel(),
-		CommunityModel:  views.NewCommunityModel(),
-		CreatePostModel: views.NewCreatePostModel(),
+		State:              StateLoading,
+		Client:             api.NewClient(cfg.BaseURL),
+		Config:             cfg,
+		Theme:              NewTheme(cfg.Appearance),
+		Keys:               NewKeyMap(cfg.Keys),
+		FeedModel:          views.NewFeedModel(),
+		LoginModel:         views.NewLoginModel(),
+		RegisterModel:      views.NewRegisterModel(),
+		PostDetailModel:    views.NewPostDetailModel(),
+		CommunityModel:     views.NewCommunityModel(),
+		CreatePostModel:    views.NewCreatePostModel(),
 		EditPostModel:      views.NewCreatePostModel(),
 		EditCommunityModel: views.NewCreatePostModel(),
 		SettingsModel:      views.NewSettingsModel(),
@@ -152,12 +152,13 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case ":n", ":new":
 					m.State = StateCreatePost
 				case ":r", ":refresh":
+					prevState := m.State
 					m.State = StateLoading
-					if m.State == StateFeed {
+					if prevState == StateFeed {
 						return m, m.fetchFeed()
-					} else if m.State == StateCommunities {
+					} else if prevState == StateCommunities {
 						return m, m.fetchCommunities()
-					} else if m.State == StatePostDetail {
+					} else if prevState == StatePostDetail {
 						return m, m.fetchPostDetail(m.PostDetailModel.Post.ID)
 					}
 					m.State = StateFeed // default to feed
@@ -302,7 +303,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				return m, nil
 			}
-			
+
 			if msg.String() == "backspace" {
 				if len(m.CommandBuffer) > 1 {
 					m.CommandBuffer = m.CommandBuffer[:len(m.CommandBuffer)-1]
@@ -465,10 +466,10 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case loginSuccessMsg:
 		m.State = StateFeed
 		m.Client.SetToken(string(msg))
-		
+
 		// Persist token
 		m.Config.UpdateToken(string(msg))
-		
+
 		return m, tea.Batch(m.fetchFeed(), m.fetchMe(), m.fetchWallet())
 
 	case meMsg:
@@ -701,7 +702,7 @@ func (m MainModel) performCreateComment() tea.Cmd {
 		if err != nil {
 			return errorMsg(err)
 		}
-		
+
 		return commentSuccessMsg("Comment posted!")
 	}
 }
@@ -751,9 +752,9 @@ func (m MainModel) performUpdateCommunity() tea.Cmd {
 			"title":       m.EditCommunityModel.Title.Value(),
 			"description": m.EditCommunityModel.Content.Value(),
 		}
-		// Community Name is typically not editable after creation in many systems, 
+		// Community Name is typically not editable after creation in many systems,
 		// but we used CommunityID field for it.
-		
+
 		var communityID string
 		if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
 			communityID = item.ID
@@ -904,7 +905,7 @@ func (m MainModel) performGiveAward(targetID string, targetType int, awardID str
 			return errorMsg(err)
 		}
 		return tea.Batch(
-			m.fetchWallet(), // Update balance
+			m.fetchWallet(),             // Update balance
 			m.fetchPostDetail(targetID), // Update award count
 			func() tea.Msg { return statusMsg("Award given!") },
 		)
