@@ -17,6 +17,8 @@ func TestMainModel_CommandTransitions(t *testing.T) {
 		expected State
 	}{
 		{"Login command", ":login", StateLogin},
+		{"Feed alias command", ":f", StateLoading},
+		{"Communities alias command", ":c", StateLoading},
 		{"Communities command", ":communities", StateLoading},
 		{"Settings command", ":settings", StateProfileSettings},
 		{"New post command", ":new", StateCreatePost},
@@ -28,7 +30,7 @@ func TestMainModel_CommandTransitions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			m.CommandBuffer = tt.command
 			msg := tea.KeyMsg{Type: tea.KeyEnter}
-			
+
 			newModel, _ := m.Update(msg)
 			updatedM := newModel.(MainModel)
 
@@ -41,7 +43,7 @@ func TestMainModel_CommandTransitions(t *testing.T) {
 	t.Run("Post detail specific commands", func(t *testing.T) {
 		m.State = StatePostDetail
 		m.PostDetailModel.Post.ID = "p1"
-		
+
 		cmds := []struct {
 			cmd      string
 			expected State
