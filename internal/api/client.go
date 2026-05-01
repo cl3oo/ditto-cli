@@ -187,7 +187,6 @@ func httpDebugEnabled() bool {
 }
 
 func redactSensitiveText(raw string) string {
-	type redactor struct{}
 	var payload interface{}
 	if err := json.Unmarshal([]byte(raw), &payload); err == nil {
 		redactValue(&payload)
