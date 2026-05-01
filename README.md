@@ -15,27 +15,27 @@ A powerful terminal-based user interface (TUI) for the Ditto social platform. Bu
 
 ### Prerequisites
 
-- [Go](https://go.dev/doc/install) 1.23 or higher.
+- [Go](https://go.dev/doc/install) 1.26.2 or higher (matches `go.mod`).
 
 ### From Source
 
 ```bash
-# Clone the repository (if not already done)
-git clone https://github.com/rfcku/ditto.git
-cd ditto/cli
+# Clone the repository
+git clone https://github.com/rfcku/ditto-cli.git
+cd ditto-cli
 
 # Build the binary
 make build
 
-# Run directly
-./ditto-cli
+# Launch the TUI
+./ditto-cli tui
 ```
 
 ### Environment Variables
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `DITTO_API_URL` | The URL of the Ditto API. | `http://localhost:9001` |
+| `DITTO_API_URL` | The URL of the Ditto API. | `http://localhost:9001/v1` |
 
 ## Usage
 
@@ -72,6 +72,9 @@ While in the TUI, press `:` to enter command mode:
 You can also use `ditto-cli` for one-off operations:
 
 ```bash
+# Launch the TUI without building first
+go run . tui
+
 # Upload media to a post
 ./ditto-cli upload image.png --target <post_id>
 
@@ -89,7 +92,7 @@ You can also use `ditto-cli` for one-off operations:
 
 ### Key Commands
 
-- `make run`: Run the TUI in development mode.
+- `make run`: Run the TUI in development mode (`go run . tui`).
 - `make test`: Run unit tests.
 - `make lint`: Run the linter (`golangci-lint`).
 - `make build`: Compile the binary.
@@ -110,4 +113,4 @@ This project uses git hooks to ensure code quality:
 
 ## CI/CD
 
-The CLI is automatically tested and linted via GitHub Actions on every push to the `cli/` directory.
+There is currently no GitHub Actions workflow checked into this repository, so local `make test` and `make lint` are the primary verification steps for now.
