@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rfcku/ditto/cli/internal/api"
 	"github.com/rfcku/ditto/cli/internal/config"
@@ -30,6 +31,7 @@ const (
 	StateEditPost
 	StateEditCommunity
 	StateProfileSettings
+	StateHelp
 )
 
 type MainModel struct {
@@ -57,6 +59,7 @@ type MainModel struct {
 	EditPostModel      views.CreatePostModel
 	EditCommunityModel views.CreatePostModel
 	SettingsModel      views.SettingsModel
+	HelpModel          views.HelpModel
 }
 
 func NewMainModel(cfg *config.Config) MainModel {
@@ -75,6 +78,7 @@ func NewMainModel(cfg *config.Config) MainModel {
 		EditPostModel:      views.NewCreatePostModel(),
 		EditCommunityModel: views.NewCreatePostModel(),
 		SettingsModel:      views.NewSettingsModel(),
+		HelpModel:          views.NewHelpModel(),
 	}
 	m.Client.SetToken(cfg.Token)
 	m.FeedModel.SetTheme(m.Theme.Selected)
@@ -148,8 +152,9 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case ":q", ":quit":
 					return m, tea.Quit
 				case ":man":
-					m.StatusMessage = "Manual: Use j/k to navigate, :feed for home, :q to quit"
-					return m, m.clearStatus()
+					m.State = StateHelp
+					m.HelpModel.SetSize(m.Width, m.Height-4)
+					return m, nil
 				case ":logout":
 					m.Client.SetToken("")
 					_ = m.Config.UpdateToken("")
@@ -304,6 +309,11 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						m.State = StateLoading
 						return m, m.performSearch(query)
 					}
+				case ":share":
+					if m.State == StatePostDetail {
+						url := fmt.Sprintf("%s/posts/%s", m.Client.BaseURL, m.PostDetailModel.Post.ID)
+						return m, m.performShare(url)
+					}
 				case ":u", ":user":
 					if len(parts) > 1 {
 						userID := parts[1]
@@ -377,11 +387,33 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.State = StateFeed
 				return m, nil
 			}
-			if m.State == StateCommunities || m.State == StateCreatePost || m.State == StateRegister || m.State == StateEditPost || m.State == StateEditCommunity || m.State == StateProfileSettings {
+			if m.State == StateCommunities || m.State == StateCreatePost || m.State == StateRegister || m.State == StateEditPost || m.State == StateEditCommunity || m.State == StateProfileSettings || m.State == StateHelp {
 				m.State = StateFeed
 				return m, nil
 			}
 			return m, nil
+		case msg.String() == "r":
+			if m.State == StatePostDetail && !m.PostDetailModel.ShowCommentInput {
+				if m.PostDetailModel.SelectedIdx >= 0 && m.PostDetailModel.SelectedIdx < len(m.PostDetailModel.FlattenedComments) {
+					author := m.PostDetailModel.FlattenedComments[m.PostDetailModel.SelectedIdx].Author.Username
+					m.PostDetailModel.CommentInput.Placeholder = "Replying to u/" + author + "..."
+				} else {
+					m.PostDetailModel.CommentInput.Placeholder = "Write a comment..."
+				}
+				m.PostDetailModel.SetShowCommentInput(true)
+				return m, nil
+			}
+		case msg.String() == "p":
+			if m.State == StatePostDetail && !m.PostDetailModel.ShowCommentInput {
+				var username string
+				if m.PostDetailModel.SelectedIdx >= 0 && m.PostDetailModel.SelectedIdx < len(m.PostDetailModel.FlattenedComments) {
+					username = m.PostDetailModel.FlattenedComments[m.PostDetailModel.SelectedIdx].Author.Username
+				} else {
+					username = m.PostDetailModel.Post.Author.Username
+				}
+				m.StatusMessage = "Viewing profile for u/" + username + " (Coming soon!)"
+				return m, m.clearStatus()
+			}
 		case key.Matches(msg, m.Keys.Back):
 			if msg.String() == "backspace" {
 				// Don't go back if we are typing in an input
@@ -490,6 +522,11 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.CommunityModel.SetUsers(msg)
 		return m, nil
 
+	case searchMsg:
+		m.State = StateCommunities
+		m.CommunityModel.SetItems([]list.Item(msg))
+		return m, nil
+
 	case postDetailMsg:
 		m.State = StatePostDetail
 		m.PostDetailModel.SetContent(msg.post, msg.comments)
@@ -592,6 +629,9 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case StateProfileSettings:
 		m.SettingsModel, cmd = m.SettingsModel.Update(msg)
 		cmds = append(cmds, cmd)
+	case StateHelp:
+		m.HelpModel, cmd = m.HelpModel.Update(msg)
+		cmds = append(cmds, cmd)
 	case StateRegister:
 		m.RegisterModel, cmd = m.RegisterModel.Update(msg)
 		cmds = append(cmds, cmd)
@@ -603,6 +643,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 type feedMsg []types.Post
 type communitiesMsg []types.Community
 type usersMsg []types.User
+type searchMsg []list.Item
 type postDetailMsg struct {
 	post     types.Post
 	comments []types.Comment
@@ -659,7 +700,7 @@ func (m MainModel) fetchPostDetail(id string) tea.Cmd {
 		if err != nil {
 			return errorMsg(err)
 		}
-		comments, err := m.Client.GetComments(id)
+		comments, err := m.Client.GetComments(id, 1, 50)
 		if err != nil {
 			// Still show post even if comments fail
 			return postDetailMsg{post: *post, comments: []types.Comment{}}
@@ -728,11 +769,22 @@ func (m MainModel) openBrowser(url string) tea.Cmd {
 
 func (m MainModel) performSearch(query string) tea.Cmd {
 	return func() tea.Msg {
-		communities, err := m.Client.SearchCommunities(query)
-		if err != nil {
-			return errorMsg(err)
+		communities, _ := m.Client.SearchCommunities(query)
+		posts, _ := m.Client.SearchPosts(query)
+
+		var items []list.Item
+		for _, c := range communities {
+			items = append(items, views.CommunityItem{Community: c})
 		}
-		return communitiesMsg(communities)
+		for _, p := range posts {
+			items = append(items, views.PostItem{Post: p})
+		}
+
+		if len(items) == 0 {
+			return errorMsg(fmt.Errorf("no results found for '%s'", query))
+		}
+
+		return searchMsg(items)
 	}
 }
 
@@ -752,9 +804,17 @@ func (m MainModel) fetchCommunityDetail(communityID string) tea.Cmd {
 
 func (m MainModel) performCreateComment() tea.Cmd {
 	return func() tea.Msg {
+		targetID := m.PostDetailModel.Post.ID
+		targetType := 2 // Post
+
+		if m.PostDetailModel.SelectedIdx >= 0 && m.PostDetailModel.SelectedIdx < len(m.PostDetailModel.FlattenedComments) {
+			targetID = m.PostDetailModel.FlattenedComments[m.PostDetailModel.SelectedIdx].ID
+			targetType = 3 // Comment
+		}
+
 		err := m.Client.CreateComment(
-			m.PostDetailModel.Post.ID,
-			2, // Post type
+			targetID,
+			targetType,
 			m.PostDetailModel.CommentInput.Value(),
 		)
 		if err != nil {
@@ -1006,5 +1066,22 @@ func (m MainModel) performDeleteUser(id string) tea.Cmd {
 		m.Client.SetToken("")
 		m.Config.UpdateToken("")
 		return statusMsg("Account deleted")
+	}
+}
+
+func (m MainModel) performShare(url string) tea.Cmd {
+	return func() tea.Msg {
+		var err error
+		switch runtime.GOOS {
+		case "darwin":
+			err = exec.Command("sh", "-c", "echo "+url+" | pbcopy").Run()
+		case "linux":
+			err = exec.Command("sh", "-c", "echo "+url+" | xclip -selection clipboard").Run()
+		}
+
+		if err != nil {
+			return statusMsg("Link: " + url)
+		}
+		return statusMsg("Link copied to clipboard!")
 	}
 }

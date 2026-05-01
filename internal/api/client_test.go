@@ -213,7 +213,7 @@ func TestClient_GetComments(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient(server.URL)
-	comments, err := client.GetComments("p1")
+	comments, err := client.GetComments("p1", 1, 10)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

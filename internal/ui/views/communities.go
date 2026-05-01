@@ -15,7 +15,9 @@ type CommunityItem struct {
 }
 
 func (i CommunityItem) Title() string       { return "c/" + i.Community.Name }
-func (i CommunityItem) Description() string { return fmt.Sprintf("%s • %d members", i.Community.Title, i.Community.Scores.SubCount) }
+func (i CommunityItem) Description() string {
+	return fmt.Sprintf("%s • 👥 %d • 📝 %d", i.Community.Title, i.Community.Scores.SubCount, i.Community.Scores.PostCount)
+}
 func (i CommunityItem) FilterValue() string { return i.Community.Name + " " + i.Community.Title }
 
 type UserItem struct {
@@ -40,6 +42,9 @@ func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem
 		titleStr = i.Title()
 		descStr = i.Description()
 	} else if i, ok := listItem.(UserItem); ok {
+		titleStr = i.Title()
+		descStr = i.Description()
+	} else if i, ok := listItem.(PostItem); ok {
 		titleStr = i.Title()
 		descStr = i.Description()
 	} else {
@@ -105,6 +110,11 @@ func (m *CommunityModel) SetUsers(users []types.User) {
 	for i, u := range users {
 		items[i] = UserItem{User: u}
 	}
+	m.List.SetItems(items)
+	m.Loaded = true
+}
+
+func (m *CommunityModel) SetItems(items []list.Item) {
 	m.List.SetItems(items)
 	m.Loaded = true
 }

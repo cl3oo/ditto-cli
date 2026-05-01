@@ -295,11 +295,12 @@ func (c *Client) GetPost(id string) (*types.Post, error) {
 	return &post, err
 }
 
-func (c *Client) GetComments(postID string) ([]types.Comment, error) {
+func (c *Client) GetComments(postID string, page, limit int) ([]types.Comment, error) {
 	var res struct {
 		Data []types.Comment `json:"data"`
 	}
-	err := c.Request("GET", fmt.Sprintf("/comments?id=%s&type=2", postID), nil, &res)
+	path := fmt.Sprintf("/comments?id=%s&type=2&page=%d&limit=%d", postID, page, limit)
+	err := c.Request("GET", path, nil, &res)
 	return res.Data, err
 }
 
