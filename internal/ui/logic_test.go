@@ -33,8 +33,31 @@ func TestMainModel_CommandTransitions(t *testing.T) {
 			updatedM := newModel.(MainModel)
 
 			if updatedM.State != tt.expected {
-				t.Errorf("expected state %v, got %v", tt.expected, updatedM.State)
+				t.Errorf("%s: expected state %v, got %v", tt.name, tt.expected, updatedM.State)
 			}
 		})
 	}
+
+	t.Run("Post detail specific commands", func(t *testing.T) {
+		m.State = StatePostDetail
+		m.PostDetailModel.Post.ID = "p1"
+		
+		cmds := []struct {
+			cmd      string
+			expected State
+		}{
+			{":report spam", StateLoading},
+			{":award silver", StateLoading},
+			{":delete", StateLoading},
+		}
+
+		for _, tt := range cmds {
+			m.CommandBuffer = tt.cmd
+			newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+			updatedM := newModel.(MainModel)
+			if updatedM.State != tt.expected {
+				t.Errorf("%s: expected state %v, got %v", tt.cmd, tt.expected, updatedM.State)
+			}
+		}
+	})
 }

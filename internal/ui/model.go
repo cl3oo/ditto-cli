@@ -164,10 +164,12 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, m.fetchFeed()
 				case ":delete":
 					if m.State == StatePostDetail {
+						m.State = StateLoading
 						return m, m.performDeletePost(m.PostDetailModel.Post.ID)
 					}
 					if m.State == StateCommunities {
 						if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
+							m.State = StateLoading
 							return m, m.performDeleteCommunity(item.ID)
 						}
 					}
@@ -214,45 +216,54 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case ":ban":
 					if len(parts) > 1 {
 						username := parts[1]
+						m.State = StateLoading
 						return m, m.performBanUser(username)
 					}
 				case ":mod":
 					if len(parts) > 2 && parts[1] == "add" {
 						username := parts[2]
+						m.State = StateLoading
 						return m, m.performAddModerator(username)
 					}
 				case ":lock":
 					if m.State == StatePostDetail {
+						m.State = StateLoading
 						return m, m.performLockPost(m.PostDetailModel.Post.ID, true)
 					}
 				case ":unlock":
 					if m.State == StatePostDetail {
+						m.State = StateLoading
 						return m, m.performLockPost(m.PostDetailModel.Post.ID, false)
 					}
 				case ":mod-delete":
 					if m.State == StatePostDetail && len(parts) > 1 {
 						reason := strings.Join(parts[1:], " ")
+						m.State = StateLoading
 						return m, m.performModDeletePost(m.PostDetailModel.Post.ID, reason)
 					}
 				case ":award":
 					if m.State == StatePostDetail && len(parts) > 1 {
 						awardID := parts[1]
+						m.State = StateLoading
 						return m, m.performGiveAward(m.PostDetailModel.Post.ID, 2, awardID)
 					}
 				case ":report":
 					if len(parts) > 1 {
 						reason := strings.Join(parts[1:], " ")
 						if m.State == StatePostDetail {
+							m.State = StateLoading
 							return m, m.performReport(m.PostDetailModel.Post.ID, 2, reason)
 						}
 						if m.State == StateCommunities {
 							if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
+								m.State = StateLoading
 								return m, m.performReport(item.ID, 1, reason)
 							}
 						}
 					}
 				case ":delete-comment":
 					if m.State == StatePostDetail && len(parts) > 1 {
+						m.State = StateLoading
 						return m, m.performDeleteComment(parts[1])
 					}
 				case ":settings":

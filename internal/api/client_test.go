@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -222,6 +223,48 @@ func TestClient_Logging(t *testing.T) {
 
 	if len(data) == 0 {
 		t.Fatal("Expected log file to be non-empty")
+	}
+}
+
+func TestClient_UploadMedia(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get("Content-Type"), "multipart/form-data") {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	// Create a temporary file to upload
+	tmpFile, _ := os.CreateTemp("", "test-upload")
+	defer os.Remove(tmpFile.Name())
+	_, _ = tmpFile.Write([]byte("test data"))
+	tmpFile.Close()
+
+	client := NewClient(server.URL)
+	err := client.UploadMedia("p1", 2, tmpFile.Name())
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+}
+
+func TestClient_DownloadMedia(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("test data"))
+	}))
+	defer server.Close()
+
+	tmpFile := filepath.Join(t.TempDir(), "downloaded")
+	client := NewClient(server.URL)
+	err := client.DownloadMedia("m1", tmpFile)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	data, _ := os.ReadFile(tmpFile)
+	if string(data) != "test data" {
+		t.Errorf("Expected test data, got %s", string(data))
 	}
 }
 
