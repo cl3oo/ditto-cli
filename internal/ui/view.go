@@ -19,13 +19,29 @@ func (m MainModel) View() string {
 	case StateLoading:
 		content = "  Loading..."
 	case StateFeed:
-		content = m.FeedModel.View()
+		if m.FeedModel.Loaded && len(m.FeedModel.List.Items()) == 0 {
+			content = m.renderEmptyState(
+				"No posts yet",
+				"The feed is empty right now. Try pulling in random posts, refreshing, or creating one.",
+				[]string{":random discover posts", ":refresh reload feed", "n create a post", "s search"},
+			)
+		} else {
+			content = m.FeedModel.View()
+		}
 	case StateLogin:
 		content = m.LoginModel.View()
 	case StatePostDetail:
 		content = m.PostDetailModel.View()
 	case StateCommunities:
-		content = m.CommunityModel.View()
+		if m.CommunityModel.Loaded && len(m.CommunityModel.List.Items()) == 0 {
+			content = m.renderEmptyState(
+				"No communities to show",
+				"There is nothing in this list yet. You can discover random communities or jump back to the feed.",
+				[]string{":random discover communities", ":joined show joined communities", "q back to feed", "n create a post"},
+			)
+		} else {
+			content = m.CommunityModel.View()
+		}
 	case StateCreatePost:
 		content = m.CreatePostModel.View()
 	case StateEditPost:
@@ -141,6 +157,34 @@ func (m MainModel) renderFooterHelp() string {
 	return lipgloss.JoinVertical(lipgloss.Left,
 		lineStyle.Render(section("Global", global, titleStyle, globalStyle)),
 		lineStyle.Render(section("Here", local, localTitleStyle, localStyle)),
+	)
+}
+
+func (m MainModel) renderEmptyState(title, body string, actions []string) string {
+	lines := []string{
+		m.Theme.Title.Render(" " + title + " "),
+		"",
+		body,
+	}
+	if len(actions) > 0 {
+		lines = append(lines, "", "Try:")
+		for _, action := range actions {
+			lines = append(lines, "  • "+action)
+		}
+	}
+
+	box := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		Padding(1, 2).
+		Width(min(max(52, m.Width-12), 88))
+
+	return lipgloss.Place(
+		max(0, m.Width),
+		max(0, m.Height-6),
+		lipgloss.Center,
+		lipgloss.Center,
+		box.Render(strings.Join(lines, "\n")),
 	)
 }
 
