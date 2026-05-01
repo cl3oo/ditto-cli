@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -14,28 +15,53 @@ type CommunityItem struct {
 }
 
 func (i CommunityItem) Title() string       { return "c/" + i.Community.Name }
-func (i CommunityItem) Description() string { return fmt.Sprintf("%s • %d members", i.Community.Title, i.Community.MemberCount) }
+func (i CommunityItem) Description() string { return fmt.Sprintf("%s • %d members", i.Community.Title, i.Community.Scores.SubCount) }
 func (i CommunityItem) FilterValue() string { return i.Community.Name + " " + i.Community.Title }
+
+type communityDelegate struct {
+	Theme lipgloss.Style
+}
+
+func (d communityDelegate) Height() int                               { return 2 }
+func (d communityDelegate) Spacing() int                              { return 1 }
+func (d communityDelegate) Update(msg tea.Msg, m *list.Model) tea.Cmd { return nil }
+func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem list.Item) {
+	i, ok := listItem.(CommunityItem)
+	if !ok {
+		return
+	}
+
+	title := lipgloss.NewStyle().Bold(true).Render(i.Title())
+	desc := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(i.Description())
+
+	if index == m.Index() {
+		title = d.Theme.Render(i.Title())
+	}
+
+	fmt.Fprintf(w, "  %s\n  %s", title, desc)
+}
 
 type CommunityModel struct {
 	List   list.Model
 	Loaded bool
+	Theme  lipgloss.Style
 }
 
 func NewCommunityModel() CommunityModel {
-	l := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
-	l.Title = "Communities"
+	l := list.New([]list.Item{}, communityDelegate{}, 0, 0)
+	l.SetShowTitle(false)
 	l.SetShowStatusBar(false)
-	l.Styles.Title = lipgloss.NewStyle().
-		Background(lipgloss.Color("34")).
-		Foreground(lipgloss.Color("230")).
-		Padding(0, 1)
+	l.SetFilteringEnabled(false)
 
 	return CommunityModel{
 		List: l,
 	}
 }
 
+func (m *CommunityModel) SetTheme(selected lipgloss.Style) {
+	m.Theme = selected
+	m.List.SetDelegate(communityDelegate{Theme: selected})
+}
 func (m CommunityModel) Init() tea.Cmd {
 	return nil
 }

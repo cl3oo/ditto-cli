@@ -3,7 +3,6 @@ package views
 import (
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -11,20 +10,17 @@ import (
 	"github.com/rfcku/ditto/cli/internal/types"
 )
 
-var (
-	itemStyle         = lipgloss.NewStyle().PaddingLeft(2)
-	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
-)
-
 type PostItem struct {
 	types.Post
 }
 
 func (i PostItem) Title() string       { return i.Post.Title }
-func (i PostItem) Description() string { return fmt.Sprintf("u/%s in c/%s • ♥ %d", i.Post.AuthorName, i.Post.CommunityName, i.Post.Score) }
-func (i PostItem) FilterValue() string { return i.Post.Title + " " + i.Post.AuthorName }
+func (i PostItem) Description() string { return fmt.Sprintf("u/%s in c/%s • ♥ %d", i.Post.Author.Username, i.Post.Community.Name, i.Post.Scores.VoteScore) }
+func (i PostItem) FilterValue() string { return i.Post.Title + " " + i.Post.Author.Username }
 
-type itemDelegate struct{}
+type itemDelegate struct {
+	Theme lipgloss.Style // Selected style
+}
 
 func (d itemDelegate) Height() int                               { return 2 }
 func (d itemDelegate) Spacing() int                              { return 1 }
@@ -35,40 +31,37 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		return
 	}
 
-	str := fmt.Sprintf("%s\n%s",
-		lipgloss.NewStyle().Bold(true).Render(i.Title()),
-		lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(i.Description()),
-	)
+	title := lipgloss.NewStyle().Bold(true).Render(i.Title())
+	desc := lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(i.Description())
 
-	fn := itemStyle.Render
 	if index == m.Index() {
-		fn = func(s ...string) string {
-			return selectedItemStyle.Render("> " + strings.Join(s, " "))
-		}
+		title = d.Theme.Render(i.Title())
 	}
 
-	fmt.Fprint(w, fn(str))
+	fmt.Fprintf(w, "  %s\n  %s", title, desc)
 }
 
 type FeedModel struct {
 	List   list.Model
 	Loaded bool
+	Theme  lipgloss.Style
 }
 
 func NewFeedModel() FeedModel {
-	l := list.New([]list.Item{}, list.NewDefaultDelegate(), 0, 0)
-	l.Title = "Trending Posts"
+	l := list.New([]list.Item{}, itemDelegate{}, 0, 0)
+	l.SetShowTitle(false)
 	l.SetShowStatusBar(false)
-	l.Styles.Title = lipgloss.NewStyle().
-		Background(lipgloss.Color("62")).
-		Foreground(lipgloss.Color("230")).
-		Padding(0, 1)
+	l.SetFilteringEnabled(false)
 
 	return FeedModel{
 		List: l,
 	}
 }
 
+func (m *FeedModel) SetTheme(selected lipgloss.Style) {
+	m.Theme = selected
+	m.List.SetDelegate(itemDelegate{Theme: selected})
+}
 func (m FeedModel) Init() tea.Cmd {
 	return nil
 }

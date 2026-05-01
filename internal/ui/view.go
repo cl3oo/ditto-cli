@@ -11,54 +11,107 @@ func (m MainModel) View() string {
 	var s strings.Builder
 
 	// Header
-	header := HeaderStyle.Render(" DITTO CLI ")
-	if m.Client.Token != "" {
-		header += lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(" (Logged In)")
-	}
-	s.WriteString(header + "\n\n")
+	s.WriteString(m.renderHeader() + "\n\n")
 
-	if m.Error != nil {
-		s.WriteString(ErrStyle.Render(fmt.Sprintf("Error: %v", m.Error)))
-		s.WriteString("\n\n(r to retry, L for login)")
-	} else {
-		switch m.State {
-		case StateLoading:
-			s.WriteString(" Loading...")
-		case StateFeed:
-			s.WriteString(m.FeedModel.View())
-		case StateLogin:
-			s.WriteString(m.LoginModel.View())
-		case StatePostDetail:
-			s.WriteString(m.PostDetailModel.View())
-		case StateCommunities:
-			s.WriteString(m.CommunityModel.View())
-		case StateCreatePost:
-			s.WriteString(m.CreatePostModel.View())
-		}
+	// Main Content
+	var content string
+	switch m.State {
+	case StateLoading:
+		content = "  Loading..."
+	case StateFeed:
+		content = m.FeedModel.View()
+	case StateLogin:
+		content = m.LoginModel.View()
+	case StatePostDetail:
+		content = m.PostDetailModel.View()
+	case StateCommunities:
+		content = m.CommunityModel.View()
+	case StateCreatePost:
+		content = m.CreatePostModel.View()
+	case StateRegister:
+		content = m.RegisterModel.View()
+	case StateSelection:
+		content = m.renderSelectionMenu()
 	}
+	s.WriteString(content)
 
-	// Footer
-	var footer string
-	helpText := "q: quit • :L: login • :F: feed • :C: communities • :n: new post • :r: refresh • enter: view"
-	if m.State == StatePostDetail {
-		helpText = ":q: quit • esc: back • ↑/↓: scroll"
-	} else if m.State == StateCommunities {
-		helpText = ":q: quit • esc: back • :F: feed • :r: refresh"
-	} else if m.State == StateCreatePost {
-		helpText = ":q: quit • esc: back • tab: next field"
-	}
-
-	footer = "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(helpText)
-	
+	// Command Buffer and Status (pinned to bottom)
+	footerHeight := 0
 	if m.CommandBuffer != "" {
-		footer += "\n" + lipgloss.NewStyle().
-			Foreground(lipgloss.Color("15")).
-			Background(lipgloss.Color("62")).
-			Padding(0, 1).
-			Render(m.CommandBuffer)
+		footerHeight++
 	}
+	if m.StatusMessage != "" {
+		footerHeight++
+	}
+
+	contentHeight := lipgloss.Height(content)
+	headerHeight := lipgloss.Height(m.renderHeader()) + 2
 	
-	s.WriteString(footer)
+	padding := m.Height - contentHeight - headerHeight - footerHeight
+	if padding > 0 {
+		s.WriteString(strings.Repeat("\n", padding))
+	}
+
+	// Status Message
+	if m.StatusMessage != "" {
+		style := m.Theme.Selected
+		if strings.HasPrefix(m.StatusMessage, "Error") {
+			style = m.Theme.Error
+		}
+		s.WriteString("\n " + style.Render(m.StatusMessage))
+	}
+
+	// Command Buffer
+	if m.CommandBuffer != "" {
+		s.WriteString("\n" + lipgloss.NewStyle().
+			Foreground(lipgloss.Color("15")).
+			Background(m.Theme.Accent).
+			Padding(0, 1).
+			Render(m.CommandBuffer))
+	}
 
 	return s.String()
+}
+
+func (m MainModel) renderSelectionMenu() string {
+	var s strings.Builder
+	title := m.Theme.Title.Render(" Create New ")
+	s.WriteString(" " + title + "\n\n")
+	s.WriteString("  [p] Post\n")
+	s.WriteString("  [c] Community\n")
+	s.WriteString("\n  Press p or c to select, esc to cancel")
+	return s.String()
+}
+
+func (m MainModel) renderHeader() string {
+	bc := " DITTO "
+	switch m.State {
+	case StateFeed:
+		bc += "> FEED "
+	case StatePostDetail:
+		bc += fmt.Sprintf("> c/%s > p/%s ", m.PostDetailModel.Post.Community.Name, m.PostDetailModel.Post.Title)
+	case StateCommunities:
+		bc += "> COMMUNITIES "
+	case StateCreatePost:
+		bc += "> NEW POST "
+	case StateLogin:
+		bc += "> LOGIN "
+	case StateRegister:
+		bc += "> REGISTER "
+	case StateSelection:
+		bc += "> SELECT "
+	}
+	
+	header := m.Theme.Title.Render(bc)
+	if m.Client.Token != "" {
+		userStr := "(Logged In)"
+		if m.Me != nil {
+			userStr = fmt.Sprintf("(u/%s)", m.Me.Username)
+		}
+		header += lipgloss.NewStyle().
+			Foreground(lipgloss.Color("241")).
+			MarginLeft(1).
+			Render(userStr)
+	}
+	return header
 }

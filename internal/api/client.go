@@ -8,7 +8,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/http/httptrace"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 	"github.com/rfcku/ditto/cli/internal/types"
@@ -28,14 +31,29 @@ type Client struct {
 
 func NewClient(baseURL string) *Client {
 	var logger *log.Logger
-	if logFile, err := os.OpenFile("ditto.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666); err == nil {
+	home, _ := os.UserHomeDir()
+	logPath := filepath.Join(home, ".config", "ditto-cli", "ditto.log")
+	if logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666); err == nil {
 		logger = log.New(logFile, "[API] ", log.Ldate|log.Ltime|log.Lshortfile)
 	}
 
+	return NewClientWithLogger(baseURL, logger)
+}
+
+func NewClientWithLogger(baseURL string, logger *log.Logger) *Client {
 	return &Client{
 		BaseURL: baseURL,
 		HTTPClient: &http.Client{
 			Timeout: 15 * time.Second,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				if logger != nil {
+					logger.Printf("Redirecting to: %s", req.URL)
+				}
+				if len(via) >= 10 {
+					return errors.New("stopped after 10 redirects")
+				}
+				return nil
+			},
 		},
 		Logger: logger,
 	}
@@ -57,9 +75,12 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 		bodyReader = bytes.NewBuffer(bodyBytes)
 	}
 
-	url := fmt.Sprintf("%s%s", c.BaseURL, path)
-	if !strings.HasPrefix(path, "/v1") && !strings.Contains(c.BaseURL, "/v1") {
-	        url = fmt.Sprintf("%s/v1%s", c.BaseURL, path)
+	baseURL := strings.TrimSuffix(c.BaseURL, "/")
+	path = "/" + strings.TrimPrefix(path, "/")
+	
+	url := fmt.Sprintf("%s%s", baseURL, path)
+	if !strings.HasPrefix(path, "/v1") && !strings.Contains(baseURL, "/v1") {
+	        url = fmt.Sprintf("%s/v1%s", baseURL, path)
 	}
 	req, err := http.NewRequest(method, url, bodyReader)
 
@@ -78,6 +99,35 @@ func (c *Client) Request(method, path string, body interface{}, target interface
 			c.Logger.Printf("Body: %s", string(bodyBytes))
 		}
 	}
+
+	trace := &httptrace.ClientTrace{
+		DNSStart: func(info httptrace.DNSStartInfo) {
+			if c.Logger != nil {
+				c.Logger.Printf("DNS Start: %s", info.Host)
+			}
+		},
+		DNSDone: func(info httptrace.DNSDoneInfo) {
+			if c.Logger != nil {
+				c.Logger.Printf("DNS Done: %v, err: %v", info.Addrs, info.Err)
+			}
+		},
+		ConnectStart: func(network, addr string) {
+			if c.Logger != nil {
+				c.Logger.Printf("Connect Start: %s %s", network, addr)
+			}
+		},
+		ConnectDone: func(network, addr string, err error) {
+			if c.Logger != nil {
+				c.Logger.Printf("Connect Done: %s %s, err: %v", network, addr, err)
+			}
+		},
+		GotFirstResponseByte: func() {
+			if c.Logger != nil {
+				c.Logger.Printf("Got First Response Byte")
+			}
+		},
+	}
+	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 
 	start := time.Now()
 	resp, err := c.HTTPClient.Do(req)
@@ -141,9 +191,10 @@ func (c *Client) Login(username, password string) (string, error) {
         return res.Token, nil
 }
 
-func (c *Client) Register(username, password string) (string, error) {
+func (c *Client) Register(username, email, password string) (string, error) {
         body := map[string]string{
                 "username": username,
+                "email":    email,
                 "password": password,
         }
         var res types.TokenResponse
@@ -162,7 +213,7 @@ func (c *Client) GetTrendingPosts() ([]types.Post, error) {
         var res struct {
                 Data []types.Post `json:"data"`
         }
-        err := c.Request("GET", "/posts", nil, &res)
+        err := c.Request("GET", "/posts/", nil, &res)
         return res.Data, err
 }
 
@@ -170,23 +221,23 @@ func (c *Client) GetCommunities() ([]types.Community, error) {
         var res struct {
                 Data []types.Community `json:"data"`
         }
-        err := c.Request("GET", "/communities", nil, &res)
+        err := c.Request("GET", "/communities/", nil, &res)
         return res.Data, err
 }
 
 func (c *Client) Vote(targetID string, targetType int, value int) error {
-        path := fmt.Sprintf("/votes/%s?type=%d&value=%d", targetID, targetType, value)
+        path := fmt.Sprintf("/votes/%s/?type=%d&value=%d", targetID, targetType, value)
         return c.Request("POST", path, nil, nil)
 }
 
 func (c *Client) CreateComment(targetID string, targetType int, content string) error {
         body := map[string]string{"content": content}
-        path := fmt.Sprintf("/comments/%s?type=%d", targetID, targetType)
+        path := fmt.Sprintf("/comments/%s/?type=%d", targetID, targetType)
         return c.Request("POST", path, body, nil)
 }
 
 func (c *Client) JoinCommunity(communityID string) error {
-        return c.Request("POST", fmt.Sprintf("/communities/%s/join", communityID), nil, nil)
+        return c.Request("POST", fmt.Sprintf("/communities/%s/join/", communityID), nil, nil)
 }
 
 func (c *Client) CreateCommunity(name, title, description string) error {
@@ -195,7 +246,7 @@ func (c *Client) CreateCommunity(name, title, description string) error {
                 "title":       title,
                 "description": description,
         }
-        return c.Request("POST", "/communities", body, nil)
+        return c.Request("POST", "/communities/", body, nil)
 }
 
 func (c *Client) CreatePost(title, content, communityName string) error {
@@ -220,7 +271,7 @@ func (c *Client) CreatePost(title, content, communityName string) error {
 		"title":   title,
 		"content": content,
 	}
-	path := fmt.Sprintf("/posts/%s?type=1", communityID)
+	path := fmt.Sprintf("/posts/%s/?type=1", communityID)
 	return c.Request("POST", path, body, nil)
 }
 
@@ -229,13 +280,13 @@ func (c *Client) GetFeed() ([]types.Post, error) {
 	var res struct {
 		Data []types.Post `json:"data"`
 	}
-	err := c.Request("GET", "/feed", nil, &res)
+	err := c.Request("GET", "/feed/", nil, &res)
 	return res.Data, err
 }
 
 func (c *Client) GetPost(id string) (*types.Post, error) {
 	var post types.Post
-	err := c.Request("GET", fmt.Sprintf("/posts/%s", id), nil, &post)
+	err := c.Request("GET", fmt.Sprintf("/posts/%s/", id), nil, &post)
 	return &post, err
 }
 
@@ -243,12 +294,40 @@ func (c *Client) GetComments(postID string) ([]types.Comment, error) {
 	var res struct {
 		Data []types.Comment `json:"data"`
 	}
-	err := c.Request("GET", fmt.Sprintf("/posts/%s/comments", postID), nil, &res)
+	err := c.Request("GET", fmt.Sprintf("/comments?id=%s&type=2", postID), nil, &res)
 	return res.Data, err
 }
 
 func (c *Client) GetMe() (*types.User, error) {
 	var user types.User
-	err := c.Request("GET", "/users/me", nil, &user)
+	err := c.Request("GET", "/users/me/", nil, &user)
+	return &user, err
+}
+
+func (c *Client) GetPostsFiltered(filter map[string]interface{}) ([]types.Post, error) {
+	filterJSON, err := json.Marshal(filter)
+	if err != nil {
+		return nil, err
+	}
+	path := fmt.Sprintf("/posts/?filter=%s", url.QueryEscape(string(filterJSON)))
+	var res struct {
+		Data []types.Post `json:"data"`
+	}
+	err = c.Request("GET", path, nil, &res)
+	return res.Data, err
+}
+
+func (c *Client) SearchCommunities(query string) ([]types.Community, error) {
+	path := fmt.Sprintf("/search?q=%s", url.QueryEscape(query))
+	var res struct {
+		Data []types.Community `json:"data"`
+	}
+	err := c.Request("GET", path, nil, &res)
+	return res.Data, err
+}
+
+func (c *Client) GetUser(id string) (*types.User, error) {
+	var user types.User
+	err := c.Request("GET", fmt.Sprintf("/users/%s", id), nil, &user)
 	return &user, err
 }

@@ -28,7 +28,7 @@ var getPostsCmd = &cobra.Command{
 		fmt.Fprintln(w, "ID\tTITLE\tAUTHOR\tCOMMUNITY\tSCORE")
 		for _, p := range posts {
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\n",
-				p.ID, p.Title, p.AuthorName, p.CommunityName, p.Score)
+				p.ID, p.Title, p.Author.Username, p.Community.Name, p.Scores.VoteScore)
 		}
 		return w.Flush()
 	},
@@ -47,7 +47,7 @@ var getFeedCmd = &cobra.Command{
 		fmt.Fprintln(w, "ID\tTITLE\tAUTHOR\tCOMMUNITY\tSCORE")
 		for _, p := range posts {
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%d\n",
-				p.ID, p.Title, p.AuthorName, p.CommunityName, p.Score)
+				p.ID, p.Title, p.Author.Username, p.Community.Name, p.Scores.VoteScore)
 		}
 		return w.Flush()
 	},
@@ -67,7 +67,7 @@ var getCommunitiesCmd = &cobra.Command{
 		fmt.Fprintln(w, "ID\tNAME\tTITLE\tMEMBERS")
 		for _, c := range communities {
 			fmt.Fprintf(w, "%s\t%s\t%s\t%d\n", 
-				c.ID, c.Name, c.Title, c.MemberCount)
+				c.ID, c.Name, c.Title, c.Scores.SubCount)
 		}
 		return w.Flush()
 	},

@@ -9,36 +9,68 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type UserMin struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+}
+
+type CommunityMin struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type Score struct {
+	ID             string    `json:"id"`
+	VoteCount      int       `json:"vote_count"`
+	CommentCount   int       `json:"comment_count"`
+	VoteScore      int       `json:"vote_score"`
+	SubCount       int       `json:"sub_count"`
+	MediaCount     int       `json:"media_count"`
+	PostCount      int       `json:"post_count"`
+	CommunityCount int       `json:"community_count"`
+	AwardCount     int       `json:"award_count"`
+	TargetID       string    `json:"target_id"`
+	TargetType     int       `json:"target_type"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
 type Community struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
 	Title       string    `json:"title"`
 	Description string    `json:"description"`
-	CreatorID   string    `json:"creator_id"`
+	AuthorID    string    `json:"author_id"`
 	CreatedAt   time.Time `json:"created_at"`
-	MemberCount int       `json:"member_count"`
+	Scores      Score     `json:"scores"`
 }
 
 type Post struct {
-	ID            string    `json:"id"`
-	Title         string    `json:"title"`
-	Content       string    `json:"content"`
-	AuthorID      string    `json:"author_id"`
-	AuthorName    string    `json:"author_name"`
-	CommunityID   string    `json:"community_id"`
-	CommunityName string    `json:"community_name"`
-	Score         int       `json:"score"`
-	CreatedAt     time.Time `json:"created_at"`
+	ID            string       `json:"id"`
+	Title         string       `json:"title"`
+	Content       string       `json:"content"`
+	AuthorID      string       `json:"author_id"`
+	Author        UserMin      `json:"author"`
+	CommunityID   string       `json:"community_id"`
+	Community     CommunityMin `json:"community"`
+	Scores        Score        `json:"scores"`
+	Locked        bool         `json:"locked"`
+	Voted         bool         `json:"voted"`
+	VoteDirection int          `json:"vote_direction"`
+	CreatedAt     time.Time    `json:"created_at"`
+	UpdatedAt     time.Time    `json:"updated_at"`
 }
 
 type Comment struct {
-	ID         string    `json:"id"`
-	Content    string    `json:"content"`
-	AuthorID   string    `json:"author_id"`
-	AuthorName string    `json:"author_name"`
-	Score      int       `json:"score"`
-	CreatedAt  time.Time `json:"created_at"`
-	Children   []Comment `json:"children"`
+	ID            string    `json:"id"`
+	Content       string    `json:"content"`
+	AuthorID      string    `json:"author_id"`
+	Author        UserMin   `json:"author"`
+	Scores        Score     `json:"scores"`
+	Voted         bool      `json:"voted"`
+	VoteDirection int       `json:"vote_direction"`
+	CreatedAt     time.Time `json:"created_at"`
+	Children      []Comment `json:"children"`
 }
 
 type TokenResponse struct {

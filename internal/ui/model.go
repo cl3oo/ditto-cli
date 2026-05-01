@@ -2,10 +2,14 @@ package ui
 
 import (
 	"errors"
+	"fmt"
 	"os/exec"
 	"runtime"
+	"strings"
+	"time"
 
-	"github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/rfcku/ditto/cli/internal/api"
 	"github.com/rfcku/ditto/cli/internal/config"
 	"github.com/rfcku/ditto/cli/internal/types"
@@ -21,41 +25,71 @@ const (
 	StatePostDetail
 	StateCommunities
 	StateCreatePost
+	StateSelection
+	StateRegister
 )
 
 type MainModel struct {
 	State         State
 	Client        *api.Client
+	Config        *config.Config
+	Theme         Theme
+	Keys          KeyMap
 	Error         error
+	StatusMessage string
+	StatusTimer   int
 	Width         int
 	Height        int
 	CommandBuffer string
+	Me            *types.User
 
 	// Sub-models
 	FeedModel       views.FeedModel
 	LoginModel      views.LoginModel
+	RegisterModel   views.RegisterModel
 	PostDetailModel views.PostDetailModel
 	CommunityModel  views.CommunityModel
 	CreatePostModel views.CreatePostModel
 }
 
-func NewMainModel(baseURL string) MainModel {
-	return MainModel{
+func NewMainModel(cfg *config.Config) MainModel {
+	m := MainModel{
 		State:           StateLoading,
-		Client:          api.NewClient(baseURL),
+		Client:          api.NewClient(cfg.BaseURL),
+		Config:          cfg,
+		Theme:           NewTheme(cfg.Appearance),
+		Keys:            NewKeyMap(cfg.Keys),
 		FeedModel:       views.NewFeedModel(),
 		LoginModel:      views.NewLoginModel(),
+		RegisterModel:   views.NewRegisterModel(),
 		PostDetailModel: views.NewPostDetailModel(),
 		CommunityModel:  views.NewCommunityModel(),
 		CreatePostModel: views.NewCreatePostModel(),
 	}
+	m.Client.SetToken(cfg.Token)
+	m.FeedModel.SetTheme(m.Theme.Selected)
+	m.CommunityModel.SetTheme(m.Theme.Selected)
+	m.PostDetailModel.SetTheme(m.Theme.Accent, m.Theme.Selected, m.Theme.Markdown)
+	return m
 }
 
 func (m MainModel) Init() tea.Cmd {
-	return tea.Batch(
-		m.fetchFeed(),
-		m.LoginModel.Init(),
-	)
+	var cmds []tea.Cmd
+	cmds = append(cmds, m.fetchFeed())
+	cmds = append(cmds, m.LoginModel.Init())
+	if m.Client.Token != "" {
+		cmds = append(cmds, m.fetchMe())
+	}
+	return tea.Batch(cmds...)
+}
+
+type tickMsg struct{}
+type statusMsg string
+
+func (m MainModel) clearStatus() tea.Cmd {
+	return tea.Tick(3*time.Second, func(t time.Time) tea.Msg {
+		return tickMsg{}
+	})
 }
 
 func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -63,96 +97,181 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case tickMsg:
+		m.StatusMessage = ""
+		return m, nil
+
+	case statusMsg:
+		m.StatusMessage = string(msg)
+		var refreshCmd tea.Cmd
+		if m.State == StateFeed {
+			refreshCmd = m.fetchFeed()
+		} else if m.State == StatePostDetail {
+			refreshCmd = m.fetchPostDetail(m.PostDetailModel.Post.ID)
+		}
+		return m, tea.Batch(refreshCmd, m.clearStatus())
+
 	case tea.KeyMsg:
 		if m.Error != nil {
 			m.Error = nil
 		}
 
-		key := msg.String()
-
-		// Handle command prefix
+		// Handle command buffer first (prefix :)
 		if m.CommandBuffer != "" {
-			m.CommandBuffer += key
-			executed := true
-			switch m.CommandBuffer {
-			case ":q":
-				return m, tea.Quit
-			case ":L":
-				m.State = StateLogin
-			case ":F":
-				m.State = StateFeed
-			case ":C":
-				m.State = StateLoading
+			if msg.String() == "enter" {
+				fullCmd := m.CommandBuffer
 				m.CommandBuffer = ""
-				return m, m.fetchCommunities()
-			case ":n":
-				m.State = StateCreatePost
-			case ":r":
-				if m.State == StateFeed {
-					m.State = StateLoading
-					m.CommandBuffer = ""
-					return m, m.fetchFeed()
+				parts := strings.Fields(fullCmd)
+				if len(parts) == 0 {
+					return m, nil
 				}
-				if m.State == StateCommunities {
-					m.State = StateLoading
-					m.CommandBuffer = ""
-					return m, m.fetchCommunities()
-				}
-			default:
-				executed = false
-			}
+				cmd := parts[0]
 
-			if executed || len(m.CommandBuffer) > 2 {
-				m.CommandBuffer = ""
-			}
-			if executed {
+				switch cmd {
+				case ":q", ":quit":
+					return m, tea.Quit
+				case ":L", ":login":
+					m.State = StateLogin
+				case ":F", ":feed":
+					m.State = StateLoading
+					return m, m.fetchFeed()
+				case ":C", ":communities":
+					m.State = StateLoading
+					return m, m.fetchCommunities()
+				case ":n", ":new":
+					m.State = StateCreatePost
+				case ":r", ":refresh":
+					m.State = StateLoading
+					if m.State == StateFeed {
+						return m, m.fetchFeed()
+					} else if m.State == StateCommunities {
+						return m, m.fetchCommunities()
+					} else if m.State == StatePostDetail {
+						return m, m.fetchPostDetail(m.PostDetailModel.Post.ID)
+					}
+					m.State = StateFeed // default to feed
+					return m, m.fetchFeed()
+				case ":cc":
+					if m.State == StatePostDetail {
+						m.PostDetailModel.SetShowCommentInput(true)
+						return m, nil
+					}
+				case ":s", ":search":
+					if len(parts) > 1 {
+						query := strings.Join(parts[1:], " ")
+						m.State = StateLoading
+						return m, m.performSearch(query)
+					}
+				case ":u", ":user":
+					if len(parts) > 1 {
+						userID := parts[1]
+						m.State = StateLoading
+						// return m, m.fetchUserProfile(userID) // Placeholder for Step 3
+						m.StatusMessage = "User profile view coming soon for: " + userID
+						m.State = StateFeed
+						return m, m.clearStatus()
+					}
+				default:
+					m.StatusMessage = "Unknown command: " + cmd
+					return m, m.clearStatus()
+				}
 				return m, nil
 			}
+			
+			if msg.String() == "backspace" {
+				if len(m.CommandBuffer) > 1 {
+					m.CommandBuffer = m.CommandBuffer[:len(m.CommandBuffer)-1]
+				} else {
+					m.CommandBuffer = ""
+				}
+				return m, nil
+			}
+
+			if msg.String() == "esc" {
+				m.CommandBuffer = ""
+				return m, nil
+			}
+
+			// Add space support for commands with arguments
+			if msg.String() == " " {
+				m.CommandBuffer += " "
+				return m, nil
+			}
+
+			if len(msg.String()) == 1 {
+				m.CommandBuffer += msg.String()
+			}
+			return m, nil
 		}
 
-		if key == ":" {
+		if msg.String() == ":" {
 			m.CommandBuffer = ":"
 			return m, nil
 		}
 
-		switch key {
-		case "ctrl+c":
+		if m.State == StateSelection {
+			switch msg.String() {
+			case "p":
+				m.State = StateCreatePost
+				return m, nil
+			case "c":
+				m.State = StateCommunities
+				return m, nil
+			case "esc":
+				m.State = StateFeed
+				return m, nil
+			}
+		}
+
+		// Basic Navigation Keys only
+		switch {
+		case key.Matches(msg, m.Keys.Quit):
 			return m, tea.Quit
-		case "a": // Upvote stays as single key for quick interaction, or could be :a
-			if m.State == StateFeed {
-				if item, ok := m.FeedModel.List.SelectedItem().(views.PostItem); ok {
-					return m, m.performVote(item.ID, 0, 1) // 0 = post
+		case key.Matches(msg, m.Keys.Back):
+			if msg.String() == "backspace" {
+				// Don't go back if we are typing in an input
+				if (m.State == StatePostDetail && m.PostDetailModel.ShowCommentInput) ||
+					m.State == StateLogin || m.State == StateRegister || m.State == StateCreatePost {
+					break
 				}
 			}
+
 			if m.State == StatePostDetail {
-				return m, m.performVote(m.PostDetailModel.Post.ID, 0, 1)
-			}
-		case "z": // Downvote
-			if m.State == StateFeed {
-				if item, ok := m.FeedModel.List.SelectedItem().(views.PostItem); ok {
-					return m, m.performVote(item.ID, 0, -1)
+				if m.PostDetailModel.ShowCommentInput {
+					m.PostDetailModel.SetShowCommentInput(false)
+					return m, nil
 				}
+				m.State = StateFeed
+				return m, nil
 			}
-			if m.State == StatePostDetail {
-				return m, m.performVote(m.PostDetailModel.Post.ID, 0, -1)
+
+			if m.State == StateCommunities || m.State == StateCreatePost || m.State == StateSelection || m.State == StateLogin || m.State == StateRegister {
+				m.State = StateFeed
+				return m, nil
 			}
-		case "r":
-			if m.State == StateFeed {
-				m.State = StateLoading
-				return m, m.fetchFeed()
-			}
-			if m.State == StateCommunities {
-				m.State = StateLoading
-				return m, m.fetchCommunities()
-			}
-		case "enter":
+		case msg.String() == "enter":
 			if m.State == StateLogin {
 				if m.LoginModel.Focused == 2 {
 					m.State = StateLoading
 					return m, m.performLogin()
 				}
 				if m.LoginModel.Focused == 3 {
-					return m, m.openBrowser("https://ditto.social/register")
+					m.State = StateRegister
+					return m, nil
+				}
+			}
+			if m.State == StateRegister {
+				if m.RegisterModel.Focused == 4 {
+					if m.RegisterModel.Password.Value() != m.RegisterModel.Confirm.Value() {
+						m.RegisterModel.Error = "Passwords do not match"
+						return m, nil
+					}
+					m.State = StateLoading
+					return m, m.performRegister()
+				}
+				if m.RegisterModel.Focused == 5 {
+					m.State = StateLogin
+					return m, nil
 				}
 			}
 			if m.State == StateCreatePost && m.CreatePostModel.Focused == 3 {
@@ -165,10 +284,16 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, m.fetchPostDetail(item.ID)
 				}
 			}
-		case "esc", "backspace":
-			if m.State == StatePostDetail || m.State == StateCommunities || m.State == StateCreatePost {
-				m.State = StateFeed
-				return m, nil
+			if m.State == StateCommunities {
+				if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
+					m.State = StateLoading
+					return m, m.fetchCommunityDetail(item.ID)
+				}
+			}
+			if m.State == StatePostDetail {
+				if m.PostDetailModel.ShowCommentInput && m.PostDetailModel.CommentInput.Value() != "" {
+					return m, m.performCreateComment()
+				}
 			}
 		}
 
@@ -192,6 +317,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case postDetailMsg:
 		m.State = StatePostDetail
 		m.PostDetailModel.SetContent(msg.post, msg.comments)
+		m.PostDetailModel.SetShowCommentInput(false)
 		return m, nil
 
 	case loginSuccessMsg:
@@ -199,23 +325,40 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Client.SetToken(string(msg))
 		
 		// Persist token
-		cfg, _ := config.LoadConfig()
-		_ = cfg.UpdateToken(string(msg))
+		m.Config.UpdateToken(string(msg))
 		
-		return m, m.fetchFeed()
+		return m, tea.Batch(m.fetchFeed(), m.fetchMe())
+
+	case meMsg:
+		m.Me = (*types.User)(msg)
+		return m, nil
+
+	case commentSuccessMsg:
+		m.StatusMessage = string(msg)
+		m.PostDetailModel.CommentInput.SetValue("")
+		m.PostDetailModel.SetShowCommentInput(false)
+		return m, tea.Batch(
+			m.fetchPostDetail(m.PostDetailModel.Post.ID),
+			m.clearStatus(),
+		)
 
 	case errorMsg:
 		if errors.Is(msg, api.ErrUnauthorized) {
-			m.State = StateLogin
-			m.Error = errors.New("Session expired, please login again")
-			m.Client.SetToken("")
-			cfg, _ := config.LoadConfig()
-			_ = cfg.UpdateToken("")
-			return m, nil
+			if m.Client.Token != "" {
+				m.StatusMessage = "Session expired, please login again"
+				m.Client.SetToken("")
+				m.Config.UpdateToken("")
+			}
+			if m.State != StateLogin && m.State != StateRegister {
+				m.State = StateLogin
+			}
+			return m, m.clearStatus()
 		}
-		m.Error = msg
-		// Don't change state, just show error on current screen
-		return m, nil
+		m.StatusMessage = fmt.Sprintf("Error: %v", msg)
+		if m.State == StateLoading {
+			m.State = StateFeed
+		}
+		return m, m.clearStatus()
 	}
 
 	// Delegate to sub-models
@@ -235,6 +378,9 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case StateCreatePost:
 		m.CreatePostModel, cmd = m.CreatePostModel.Update(msg)
 		cmds = append(cmds, cmd)
+	case StateRegister:
+		m.RegisterModel, cmd = m.RegisterModel.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 
 	return m, tea.Batch(cmds...)
@@ -247,6 +393,8 @@ type postDetailMsg struct {
 	comments []types.Comment
 }
 type loginSuccessMsg string
+type commentSuccessMsg string
+type meMsg *types.User
 type errorMsg error
 
 func (m MainModel) fetchFeed() tea.Cmd {
@@ -256,6 +404,16 @@ func (m MainModel) fetchFeed() tea.Cmd {
 			return errorMsg(err)
 		}
 		return feedMsg(posts)
+	}
+}
+
+func (m MainModel) fetchMe() tea.Cmd {
+	return func() tea.Msg {
+		user, err := m.Client.GetMe()
+		if err != nil {
+			return errorMsg(err)
+		}
+		return meMsg(user)
 	}
 }
 
@@ -290,11 +448,13 @@ func (m MainModel) performVote(id string, targetType int, value int) tea.Cmd {
 		if err != nil {
 			return errorMsg(err)
 		}
-		// For simplicity, just refresh after voting
-		if m.State == StateFeed {
-			return m.fetchFeed()()
+
+		msg := "Upvoted!"
+		if value < 0 {
+			msg = "Downvoted!"
 		}
-		return m.fetchPostDetail(id)()
+
+		return statusMsg(msg)
 	}
 }
 
@@ -337,5 +497,58 @@ func (m MainModel) openBrowser(url string) tea.Cmd {
 			return errorMsg(err)
 		}
 		return nil
+	}
+}
+
+func (m MainModel) performSearch(query string) tea.Cmd {
+	return func() tea.Msg {
+		communities, err := m.Client.SearchCommunities(query)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return communitiesMsg(communities)
+	}
+}
+
+func (m MainModel) fetchCommunityDetail(communityID string) tea.Cmd {
+	return func() tea.Msg {
+		filter := map[string]interface{}{
+			"target_id":   communityID,
+			"target_type": 1, // Community
+		}
+		posts, err := m.Client.GetPostsFiltered(filter)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return feedMsg(posts)
+	}
+}
+
+func (m MainModel) performCreateComment() tea.Cmd {
+	return func() tea.Msg {
+		err := m.Client.CreateComment(
+			m.PostDetailModel.Post.ID,
+			2, // Post type
+			m.PostDetailModel.CommentInput.Value(),
+		)
+		if err != nil {
+			return errorMsg(err)
+		}
+		
+		return commentSuccessMsg("Comment posted!")
+	}
+}
+
+func (m MainModel) performRegister() tea.Cmd {
+	return func() tea.Msg {
+		token, err := m.Client.Register(
+			m.RegisterModel.Username.Value(),
+			m.RegisterModel.Email.Value(),
+			m.RegisterModel.Password.Value(),
+		)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return loginSuccessMsg(token)
 	}
 }

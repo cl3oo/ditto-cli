@@ -2,9 +2,11 @@ package api
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -113,13 +115,15 @@ func TestClient_GetTrendingPosts(t *testing.T) {
 
 func TestClient_CreatePost(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" && r.URL.Path == "/v1/communities" {
+		t.Logf("Mock server received: %s %s", r.Method, r.URL.Path)
+		path := strings.TrimSuffix(r.URL.Path, "/")
+		if r.Method == "GET" && (path == "/v1/communities" || path == "/communities") {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"data": [{"id": "c1", "name": "Community"}]}`))
 			return
 		}
-		if r.Method == "POST" && r.URL.Path == "/v1/posts/c1" && r.URL.Query().Get("type") == "1" {
+		if r.Method == "POST" && (path == "/v1/posts/c1" || path == "/posts/c1") && r.URL.Query().Get("type") == "1" {
 			w.WriteHeader(http.StatusCreated)
 			return
 		}
@@ -196,13 +200,20 @@ func TestClient_Logging(t *testing.T) {
 	_ = os.Remove(logFile)
 	defer os.Remove(logFile)
 
+	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		t.Fatalf("Failed to create log file: %v", err)
+	}
+	logger := log.New(f, "[TEST] ", log.LstdFlags)
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
 
-	client := NewClient(server.URL)
+	client := NewClientWithLogger(server.URL, logger)
 	_ = client.Request("GET", "/log-test", nil, nil)
+	f.Close()
 
 	data, err := os.ReadFile(logFile)
 	if err != nil {

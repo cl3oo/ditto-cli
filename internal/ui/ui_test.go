@@ -4,14 +4,15 @@ import (
 	"testing"
 
 	"github.com/rfcku/ditto/cli/internal/api"
+	"github.com/rfcku/ditto/cli/internal/config"
 )
 
 func TestNewMainModel(t *testing.T) {
-	baseURL := "http://api.test"
-	m := NewMainModel(baseURL)
+	cfg := config.DefaultConfig()
+	m := NewMainModel(cfg)
 
-	if m.Client.BaseURL != baseURL {
-		t.Errorf("Expected baseURL %s, got %s", baseURL, m.Client.BaseURL)
+	if m.Client.BaseURL != cfg.BaseURL {
+		t.Errorf("Expected baseURL %s, got %s", cfg.BaseURL, m.Client.BaseURL)
 	}
 
 	if m.State != StateLoading {
@@ -20,7 +21,8 @@ func TestNewMainModel(t *testing.T) {
 }
 
 func TestMainModel_Update_ErrorUnauthorized(t *testing.T) {
-	m := NewMainModel("http://api.test")
+	cfg := config.DefaultConfig()
+	m := NewMainModel(cfg)
 	m.State = StateFeed
 	
 	// Simulate unauthorized error message
@@ -33,7 +35,8 @@ func TestMainModel_Update_ErrorUnauthorized(t *testing.T) {
 }
 
 func TestMainModel_Update_LoginSuccess(t *testing.T) {
-	m := NewMainModel("http://api.test")
+	cfg := config.DefaultConfig()
+	m := NewMainModel(cfg)
 	m.State = StateLogin
 	
 	// Simulate login success message
