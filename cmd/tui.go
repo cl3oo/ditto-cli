@@ -35,7 +35,9 @@ var tuiCmd = &cobra.Command{
 		if m, ok := finalModel.(ui.MainModel); ok {
 			if m.Client.Token != cfg.Token {
 				cfg.Token = m.Client.Token
-				cfg.BaseURL = m.Client.BaseURL
+				if m.Client.BaseURL != "" && m.Client.BaseURL != cfg.BaseURL {
+					cfg.BaseURL = m.Client.BaseURL
+				}
 				if err := cfg.Save(); err != nil {
 					fmt.Printf("Error saving config: %v", err)
 				}

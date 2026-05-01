@@ -74,6 +74,10 @@ func TestClient_Request_APIError(t *testing.T) {
 
 func TestClient_Login(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/auth/authorize") {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"token": "fake-token"}`))
@@ -92,6 +96,29 @@ func TestClient_Login(t *testing.T) {
 
 	if client.Token != "fake-token" {
 		t.Errorf("Expected client token to be set, got %s", client.Token)
+	}
+}
+
+func TestClient_Register(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/auth/register") {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"token": "fake-register-token"}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	token, err := client.Register("user", "email", "pass")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if token != "fake-register-token" {
+		t.Errorf("Expected token fake-register-token, got %s", token)
 	}
 }
 
