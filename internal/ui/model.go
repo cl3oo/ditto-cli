@@ -147,6 +147,14 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch cmd {
 				case ":q", ":quit":
 					return m, tea.Quit
+				case ":logout":
+					m.Client.SetToken("")
+					_ = m.Config.UpdateToken("")
+					m.Me = nil
+					m.Wallet = nil
+					m.State = StateLogin
+					m.StatusMessage = "Logged out"
+					return m, m.clearStatus()
 				case ":L", ":login":
 					m.State = StateLogin
 				case ":F", ":feed":
@@ -510,7 +518,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.Client.Token != "" {
 					m.StatusMessage = "Session expired, please login again"
 					m.Client.SetToken("")
-					_ = m.Config.UpdateToken("")
+					// DO NOT call m.Config.UpdateToken("") here to avoid wiping the file on transient errors
 				}
 				if m.State != StateLogin && m.State != StateRegister {
 					m.State = StateLogin

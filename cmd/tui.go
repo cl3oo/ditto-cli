@@ -31,9 +31,9 @@ var tuiCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Save token on exit if it changed
+		// Save token on exit if it changed and is NOT empty
 		if m, ok := finalModel.(ui.MainModel); ok {
-			if m.Client.Token != cfg.Token {
+			if m.Client.Token != cfg.Token && m.Client.Token != "" {
 				cfg.Token = m.Client.Token
 				if m.Client.BaseURL != "" && m.Client.BaseURL != cfg.BaseURL {
 					cfg.BaseURL = m.Client.BaseURL
