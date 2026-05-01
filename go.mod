@@ -1,4 +1,4 @@
-module github.com/rfcku/ditto/cli
+module github.com/rfcku/ditto-cli
 
 go 1.26.2
 

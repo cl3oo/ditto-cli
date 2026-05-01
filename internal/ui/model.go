@@ -11,10 +11,10 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rfcku/ditto/cli/internal/api"
-	"github.com/rfcku/ditto/cli/internal/config"
-	"github.com/rfcku/ditto/cli/internal/types"
-	"github.com/rfcku/ditto/cli/internal/ui/views"
+	"github.com/rfcku/ditto-cli/internal/api"
+	"github.com/rfcku/ditto-cli/internal/config"
+	"github.com/rfcku/ditto-cli/internal/types"
+	"github.com/rfcku/ditto-cli/internal/ui/views"
 )
 
 type State int
@@ -163,26 +163,27 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.State = StateLogin
 					m.StatusMessage = "Logged out"
 					return m, m.clearStatus()
-				case ":L", ":login":
+				case ":l", ":L", ":login":
 					m.State = StateLogin
-				case ":F", ":feed":
+				case ":f", ":F", ":feed":
 					m.State = StateLoading
 					return m, m.fetchFeed()
-				case ":C", ":communities":
+				case ":c", ":C", ":communities":
 					m.State = StateLoading
 					return m, m.fetchCommunities()
 				case ":n", ":new":
 					m.State = StateCreatePost
 				case ":r", ":refresh":
+					prevState := m.State
 					m.State = StateLoading
-					if m.State == StateFeed {
+					if prevState == StateFeed {
 						return m, m.fetchFeed()
-					} else if m.State == StateCommunities {
+					} else if prevState == StateCommunities {
 						return m, m.fetchCommunities()
-					} else if m.State == StatePostDetail {
+					} else if prevState == StatePostDetail {
 						return m, m.fetchPostDetail(m.PostDetailModel.Post.ID)
 					}
-					m.State = StateFeed // default to feed
+					// Default fallback if we don't know what to refresh
 					return m, m.fetchFeed()
 				case ":delete":
 					if m.State == StatePostDetail {
@@ -267,7 +268,13 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if m.State == StatePostDetail && len(parts) > 1 {
 						awardID := parts[1]
 						m.State = StateLoading
-						return m, m.performGiveAward(m.PostDetailModel.Post.ID, 2, awardID)
+						targetID := m.PostDetailModel.Post.ID
+						targetType := types.TargetTypePost
+						if m.PostDetailModel.SelectedIdx >= 0 {
+							targetID = m.PostDetailModel.FlattenedComments[m.PostDetailModel.SelectedIdx].ID
+							targetType = types.TargetTypeComment
+						}
+						return m, m.performGiveAward(targetID, targetType, awardID)
 					}
 				case ":report":
 					if len(parts) > 1 {
@@ -425,10 +432,10 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				var targetType int
 				if m.PostDetailModel.SelectedIdx >= 0 {
 					targetID = m.PostDetailModel.FlattenedComments[m.PostDetailModel.SelectedIdx].ID
-					targetType = 3 // Comment
+					targetType = types.TargetTypeComment
 				} else {
 					targetID = m.PostDetailModel.Post.ID
-					targetType = 2 // Post
+					targetType = types.TargetTypePost
 				}
 				m.State = StateLoading
 				return m, m.performReport(targetID, targetType, "Reported from TUI")
@@ -437,6 +444,42 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.State == StatePostDetail && !m.PostDetailModel.ShowCommentInput {
 				m.State = StateLoading
 				return m, m.fetchMoreComments()
+			}
+		case key.Matches(msg, m.Keys.Upvote):
+			if m.State == StateFeed {
+				if item, ok := m.FeedModel.List.SelectedItem().(views.PostItem); ok {
+					return m, m.performVote(item.ID, types.TargetTypePost, 1)
+				}
+			}
+			if m.State == StatePostDetail && !m.PostDetailModel.ShowCommentInput {
+				var targetID string
+				var targetType int
+				if m.PostDetailModel.SelectedIdx >= 0 {
+					targetID = m.PostDetailModel.FlattenedComments[m.PostDetailModel.SelectedIdx].ID
+					targetType = types.TargetTypeComment
+				} else {
+					targetID = m.PostDetailModel.Post.ID
+					targetType = types.TargetTypePost
+				}
+				return m, m.performVote(targetID, targetType, 1)
+			}
+		case key.Matches(msg, m.Keys.Downvote):
+			if m.State == StateFeed {
+				if item, ok := m.FeedModel.List.SelectedItem().(views.PostItem); ok {
+					return m, m.performVote(item.ID, types.TargetTypePost, -1)
+				}
+			}
+			if m.State == StatePostDetail && !m.PostDetailModel.ShowCommentInput {
+				var targetID string
+				var targetType int
+				if m.PostDetailModel.SelectedIdx >= 0 {
+					targetID = m.PostDetailModel.FlattenedComments[m.PostDetailModel.SelectedIdx].ID
+					targetType = types.TargetTypeComment
+				} else {
+					targetID = m.PostDetailModel.Post.ID
+					targetType = types.TargetTypePost
+				}
+				return m, m.performVote(targetID, targetType, -1)
 			}
 		case key.Matches(msg, m.Keys.Back):
 			if msg.String() == "backspace" {
@@ -834,7 +877,7 @@ func (m MainModel) fetchCommunityDetail(communityID string) tea.Cmd {
 	return func() tea.Msg {
 		filter := map[string]interface{}{
 			"target_id":   communityID,
-			"target_type": 1, // Community
+			"target_type": types.TargetTypeCommunity,
 		}
 		posts, err := m.Client.GetPostsFiltered(filter)
 		if err != nil {
@@ -847,11 +890,11 @@ func (m MainModel) fetchCommunityDetail(communityID string) tea.Cmd {
 func (m MainModel) performCreateComment() tea.Cmd {
 	return func() tea.Msg {
 		targetID := m.PostDetailModel.Post.ID
-		targetType := 2 // Post
+		targetType := types.TargetTypePost
 
 		if m.PostDetailModel.SelectedIdx >= 0 && m.PostDetailModel.SelectedIdx < len(m.PostDetailModel.FlattenedComments) {
 			targetID = m.PostDetailModel.FlattenedComments[m.PostDetailModel.SelectedIdx].ID
-			targetType = 3 // Comment
+			targetType = types.TargetTypeComment
 		}
 
 		err := m.Client.CreateComment(

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/rfcku/ditto/cli/internal/config"
+	"github.com/rfcku/ditto-cli/internal/config"
 )
 
 func TestMainModel_CommandTransitions(t *testing.T) {

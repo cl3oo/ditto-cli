@@ -16,7 +16,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rfcku/ditto/cli/internal/types"
+	"github.com/rfcku/ditto-cli/internal/types"
 )
 
 
@@ -276,7 +276,7 @@ func (c *Client) CreatePost(title, content, communityName string) error {
 		"title":   title,
 		"content": content,
 	}
-	path := fmt.Sprintf("/posts/%s?type=1", communityID)
+	path := fmt.Sprintf("/posts/%s?type=%d", communityID, types.TargetTypeCommunity)
 	return c.Request("POST", path, body, nil)
 }
 
@@ -299,7 +299,7 @@ func (c *Client) GetComments(postID string, page, limit int) ([]types.Comment, e
 	var res struct {
 		Data []types.Comment `json:"data"`
 	}
-	path := fmt.Sprintf("/comments?id=%s&type=2&page=%d&limit=%d", postID, page, limit)
+	path := fmt.Sprintf("/comments?id=%s&type=%d&page=%d&limit=%d", postID, types.TargetTypePost, page, limit)
 	err := c.Request("GET", path, nil, &res)
 	return res.Data, err
 }

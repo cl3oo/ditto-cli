@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/rfcku/ditto/cli/cmd"
+	"github.com/rfcku/ditto-cli/cmd"
 )
 
 func main() {

@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/rfcku/ditto/cli/internal/types"
+	"github.com/rfcku/ditto-cli/internal/types"
 )
 
 type PostDetailTheme struct {

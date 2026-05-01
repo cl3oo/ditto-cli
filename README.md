@@ -49,6 +49,7 @@ While in the TUI, press `:` to enter command mode:
 | `:c`, `:communities` | View communities |
 | `:n`, `:new` | Create a new post |
 | `:s <query>` | Search communities |
+| `:man` | Open the user manual |
 | `:edit` | Edit the current post or community |
 | `:delete` | Delete the current post or community |
 | `:random` | Fetch 10 random posts or communities |
@@ -66,6 +67,19 @@ While in the TUI, press `:` to enter command mode:
 | `:settings` | Edit your user profile (avatar) |
 | `:delete-account` | Permanently delete your account |
 | `:q`, `:quit` | Exit the application |
+
+### Navigation & Shortcuts
+
+- **j / k** or **Up / Down**: Navigate lists.
+- **Enter**: Select or submit.
+- **q**: Go back.
+- **a**: Upvote (configurable).
+- **z**: Downvote (configurable).
+- **r**: Reply to a comment (when selected).
+- **p**: View user profile (when comment selected).
+- **L**: Load more comments.
+- **R**: Report post or comment.
+- **s**: Share post link.
 
 ### CLI Mode
 

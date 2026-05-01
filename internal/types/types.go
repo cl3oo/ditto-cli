@@ -103,3 +103,10 @@ type Award struct {
 	Icon string `json:"icon"`
 	Cost int    `json:"cost"`
 }
+
+const (
+	TargetTypeUser      = 0
+	TargetTypeCommunity = 1
+	TargetTypePost      = 2
+	TargetTypeComment   = 3
+)

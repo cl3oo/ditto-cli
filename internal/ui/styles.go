@@ -2,7 +2,7 @@ package ui
 
 import (
 	"github.com/charmbracelet/lipgloss"
-	"github.com/rfcku/ditto/cli/internal/config"
+	"github.com/rfcku/ditto-cli/internal/config"
 )
 
 type Theme struct {

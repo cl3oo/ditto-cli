@@ -7,7 +7,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
-	"github.com/rfcku/ditto/cli/internal/types"
+	"github.com/rfcku/ditto-cli/internal/types"
 )
 
 var randomNum int
