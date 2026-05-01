@@ -14,11 +14,11 @@ type PostItem struct {
 	types.Post
 }
 
-func (i PostItem) Title() string       { return i.Post.Title }
+func (i PostItem) Title() string { return i.Post.Title }
 func (i PostItem) Description() string {
-	return fmt.Sprintf("u/%s in c/%s • ↑↓ %d • 💬 %d", 
-		i.Post.Author.Username, 
-		i.Post.Community.Name, 
+	return fmt.Sprintf("u/%s in c/%s • ↑↓ %d • 💬 %d",
+		i.Post.Author.Username,
+		i.Post.Community.Name,
 		i.Post.Scores.VoteScore,
 		i.Post.Scores.CommentCount)
 }

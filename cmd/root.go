@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/rfcku/ditto-cli/internal/api"
 	"github.com/rfcku/ditto-cli/internal/config"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -47,9 +47,9 @@ var rootCmd = &cobra.Command{
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// If no command is provided, we can either show help or run TUI.
-		// User said "if the user executes 'ditto tui' it will launch the tui app", 
-		// so I'll show help by default if no args.
-		cmd.Help()
+		// User said "if the user executes 'ditto tui' it will launch the tui app",
+		// so show help by default if no args.
+		_ = cmd.Help()
 	},
 }
 
