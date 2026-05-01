@@ -39,20 +39,6 @@ func RelativeTime(t time.Time) string {
 	return t.Format("Jan 02")
 }
 
-func RelativeTime(t time.Time) string {
-	d := time.Since(t)
-	if d < time.Minute {
-		return "just now"
-	}
-	if d < time.Hour {
-		return fmt.Sprintf("%dm ago", int(d.Minutes()))
-	}
-	if d < 24*time.Hour {
-		return fmt.Sprintf("%dh ago", int(d.Hours()))
-	}
-	return t.Format("Jan 02")
-}
-
 type itemDelegate struct {
 	Theme lipgloss.Style // Selected style
 }
