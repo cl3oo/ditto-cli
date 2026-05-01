@@ -15,7 +15,13 @@ type PostItem struct {
 }
 
 func (i PostItem) Title() string       { return i.Post.Title }
-func (i PostItem) Description() string { return fmt.Sprintf("u/%s in c/%s • ♥ %d", i.Post.Author.Username, i.Post.Community.Name, i.Post.Scores.VoteScore) }
+func (i PostItem) Description() string {
+	return fmt.Sprintf("u/%s in c/%s • ↑↓ %d • 💬 %d", 
+		i.Post.Author.Username, 
+		i.Post.Community.Name, 
+		i.Post.Scores.VoteScore,
+		i.Post.Scores.CommentCount)
+}
 func (i PostItem) FilterValue() string { return i.Post.Title + " " + i.Post.Author.Username }
 
 type itemDelegate struct {

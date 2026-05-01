@@ -21,6 +21,9 @@ type PostDetailTheme struct {
 type PostDetailModel struct {
 	Post             types.Post
 	Comments         []types.Comment
+	FlattenedComments []commentWithDepth
+	SelectedIdx      int // -1 for post, 0+ for comments
+	
 	Viewport         viewport.Model
 	CommentInput     textinput.Model
 	ShowCommentInput bool
@@ -28,6 +31,11 @@ type PostDetailModel struct {
 	Width            int
 	Height           int
 	Theme            PostDetailTheme
+}
+
+type commentWithDepth struct {
+	types.Comment
+	Depth int
 }
 
 func NewPostDetailModel() PostDetailModel {
@@ -39,6 +47,7 @@ func NewPostDetailModel() PostDetailModel {
 	return PostDetailModel{
 		Viewport:     viewport.New(0, 0),
 		CommentInput: ti,
+		SelectedIdx:  -1,
 	}
 }
 
@@ -55,7 +64,25 @@ func (m PostDetailModel) Update(msg tea.Msg) (PostDetailModel, tea.Cmd) {
 
 	if m.ShowCommentInput {
 		m.CommentInput, tiCmd = m.CommentInput.Update(msg)
+		return m, tiCmd
 	}
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "j":
+			if m.SelectedIdx < len(m.FlattenedComments)-1 {
+				m.SelectedIdx++
+				m.render()
+			}
+		case "k":
+			if m.SelectedIdx > -1 {
+				m.SelectedIdx--
+				m.render()
+			}
+		}
+	}
+
 	m.Viewport, vpCmd = m.Viewport.Update(msg)
 
 	cmd = tea.Batch(tiCmd, vpCmd)
@@ -84,8 +111,18 @@ func (m PostDetailModel) View() string {
 func (m *PostDetailModel) SetContent(post types.Post, comments []types.Comment) {
 	m.Post = post
 	m.Comments = comments
+	m.FlattenedComments = []commentWithDepth{}
+	m.flattenComments(comments, 0)
 	m.Ready = true
+	m.SelectedIdx = -1
 	m.render()
+}
+
+func (m *PostDetailModel) flattenComments(comments []types.Comment, depth int) {
+	for _, c := range comments {
+		m.FlattenedComments = append(m.FlattenedComments, commentWithDepth{Comment: c, Depth: depth})
+		m.flattenComments(c.Children, depth+1)
+	}
 }
 
 func (m *PostDetailModel) SetShowCommentInput(show bool) {
@@ -124,6 +161,10 @@ func (m *PostDetailModel) render() {
 		Bold(true).
 		Foreground(m.Theme.Accent)
 	
+	if m.SelectedIdx == -1 {
+		headerStyle = headerStyle.Background(lipgloss.Color("235"))
+	}
+	
 	headerText := fmt.Sprintf("%s (p/%s)", m.Post.Title, m.Post.ID)
 	if m.Post.Locked {
 		headerText += " [LOCKED]"
@@ -132,10 +173,11 @@ func (m *PostDetailModel) render() {
 	
 	s.WriteString(lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241")).
-		Render(fmt.Sprintf("u/%s (u/%s) in c/%s (c/%s) • ♥ %d", 
+		Render(fmt.Sprintf("u/%s (u/%s) in c/%s (c/%s) • ↑↓ %d • 💬 %d", 
 			m.Post.Author.Username, m.Post.Author.ID,
 			m.Post.Community.Name, m.Post.Community.ID,
-			m.Post.Scores.VoteScore)) + "\n\n")
+			m.Post.Scores.VoteScore,
+			m.Post.Scores.CommentCount)) + "\n\n")
 
 	// Render Post Content with Glamour
 	var renderer *glamour.TermRenderer
@@ -155,28 +197,37 @@ func (m *PostDetailModel) render() {
 
 	s.WriteString(lipgloss.NewStyle().Bold(true).Render("Comments:") + "\n\n")
 
-	// Simple comment rendering
-	for _, c := range m.Comments {
-		s.WriteString(m.renderComment(c, 0))
+	// Render flattened comments with selection
+	for i, c := range m.FlattenedComments {
+		s.WriteString(m.renderCommentItem(c, i == m.SelectedIdx))
 	}
 
 	m.Viewport.SetContent(s.String())
 }
 
-func (m PostDetailModel) renderComment(c types.Comment, depth int) string {
-	indent := strings.Repeat("  ", depth)
+func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) string {
+	indent := strings.Repeat("│ ", c.Depth)
+	if c.Depth > 0 {
+		indent = strings.Repeat("│ ", c.Depth-1) + "├─"
+	}
+	
 	var s strings.Builder
-	s.WriteString(fmt.Sprintf("%s%s %s\n", 
+	authorStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62"))
+	scoreStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	contentStyle := lipgloss.NewStyle().PaddingLeft(c.Depth * 2)
+
+	if selected {
+		authorStyle = authorStyle.Background(lipgloss.Color("235"))
+		contentStyle = contentStyle.Background(lipgloss.Color("235"))
+	}
+
+	s.WriteString(fmt.Sprintf("%s %s %s\n", 
 		indent, 
-		lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62")).Render(c.Author.Username),
-		lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Render(fmt.Sprintf("♥ %d", c.Scores.VoteScore))))
+		authorStyle.Render("u/"+c.Author.Username),
+		scoreStyle.Render(fmt.Sprintf("↑↓ %d", c.Scores.VoteScore))))
 	
 	// Wrap comment content
-	contentStyle := lipgloss.NewStyle().PaddingLeft(depth * 2 + 2)
 	s.WriteString(contentStyle.Render(c.Content) + "\n\n")
 
-	for _, child := range c.Children {
-		s.WriteString(m.renderComment(child, depth+1))
-	}
 	return s.String()
 }

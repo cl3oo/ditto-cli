@@ -147,6 +147,9 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch cmd {
 				case ":q", ":quit":
 					return m, tea.Quit
+				case ":man":
+					m.StatusMessage = "Manual: Use j/k to navigate, :feed for home, :q to quit"
+					return m, m.clearStatus()
 				case ":logout":
 					m.Client.SetToken("")
 					_ = m.Config.UpdateToken("")
@@ -364,8 +367,21 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Basic Navigation Keys only
 		switch {
-		case key.Matches(msg, m.Keys.Quit):
-			return m, tea.Quit
+		case msg.String() == "q":
+			// 'q' is now the default Back key
+			if m.State == StatePostDetail {
+				if m.PostDetailModel.ShowCommentInput {
+					m.PostDetailModel.SetShowCommentInput(false)
+					return m, nil
+				}
+				m.State = StateFeed
+				return m, nil
+			}
+			if m.State == StateCommunities || m.State == StateCreatePost || m.State == StateRegister || m.State == StateEditPost || m.State == StateEditCommunity || m.State == StateProfileSettings {
+				m.State = StateFeed
+				return m, nil
+			}
+			return m, nil
 		case key.Matches(msg, m.Keys.Back):
 			if msg.String() == "backspace" {
 				// Don't go back if we are typing in an input

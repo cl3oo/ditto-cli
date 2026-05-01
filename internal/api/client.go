@@ -331,6 +331,15 @@ func (c *Client) SearchCommunities(query string) ([]types.Community, error) {
 	return res.Data, err
 }
 
+func (c *Client) SearchPosts(query string) ([]types.Post, error) {
+	path := fmt.Sprintf("/posts?search=%s", url.QueryEscape(query))
+	var res struct {
+		Data []types.Post `json:"data"`
+	}
+	err := c.Request("GET", path, nil, &res)
+	return res.Data, err
+}
+
 func (c *Client) GetUser(id string) (*types.User, error) {
 	var user types.User
 	err := c.Request("GET", fmt.Sprintf("/users/%s", id), nil, &user)
