@@ -445,3 +445,29 @@ func (c *Client) CheckCommunityStatus(communityID string) (bool, error) {
 	err := c.Request("GET", fmt.Sprintf("/communities/%s/check/", communityID), nil, &res)
 	return res.Status, err
 }
+
+func (c *Client) BanUser(communityID, userID string) error {
+	return c.Request("POST", fmt.Sprintf("/communities/%s/ban/%s/", communityID, userID), nil, nil)
+}
+
+func (c *Client) AddModerator(communityID, userID string) error {
+	return c.Request("POST", fmt.Sprintf("/communities/%s/mods/%s/", communityID, userID), nil, nil)
+}
+
+func (c *Client) UpdateModerator(communityID, userID string, permissions map[string]interface{}) error {
+	return c.Request("PUT", fmt.Sprintf("/communities/%s/mods/%s/", communityID, userID), permissions, nil)
+}
+
+func (c *Client) RemoveModerator(communityID, userID string) error {
+	return c.Request("DELETE", fmt.Sprintf("/communities/%s/mods/%s/", communityID, userID), nil, nil)
+}
+
+func (c *Client) LockPost(postID string, lock bool) error {
+	path := fmt.Sprintf("/posts/%s/lock/?lock=%v", postID, lock)
+	return c.Request("POST", path, nil, nil)
+}
+
+func (c *Client) ModDeletePost(postID, reason string) error {
+	body := map[string]string{"reason": reason}
+	return c.Request("DELETE", fmt.Sprintf("/posts/%s/mod/", postID), body, nil)
+}

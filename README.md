@@ -55,6 +55,11 @@ While in the TUI, press `:` to enter command mode:
 | `:follow` | Follow/Unfollow the current post author |
 | `:following` | List users you follow |
 | `:joined` | List communities you joined |
+| `:ban <userID>` | Ban a user from the community (Moderator only) |
+| `:mod add <userID>` | Add a moderator to the community (Moderator only) |
+| `:lock` | Lock the current post (Moderator only) |
+| `:unlock` | Unlock the current post (Moderator only) |
+| `:mod-delete <reason>` | Delete a post as a moderator |
 | `:delete-comment <id>` | Delete a specific comment by ID |
 | `:settings` | Edit your user profile (avatar) |
 | `:delete-account` | Permanently delete your account |

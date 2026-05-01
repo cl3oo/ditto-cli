@@ -315,3 +315,37 @@ func TestClient_GetJoinedCommunities(t *testing.T) {
 		t.Errorf("Unexpected communities: %+v", comms)
 	}
 }
+
+func TestClient_BanUser(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || !strings.Contains(r.URL.Path, "/communities/c1/ban/u1") {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	err := client.BanUser("c1", "u1")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+}
+
+func TestClient_LockPost(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "POST" || !strings.Contains(r.URL.Path, "/posts/p1/lock") || r.URL.Query().Get("lock") != "true" {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	err := client.LockPost("p1", true)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+}

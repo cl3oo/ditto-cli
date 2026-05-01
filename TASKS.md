@@ -90,24 +90,24 @@ To implement the missing API endpoints into the Ditto CLI, prioritizing core use
 ## Phase 3: Moderation Tools
 
 ### Community Moderation
-- [ ] **Ban a user** (`POST /communities/{id}/ban`)
-  - **API**: Add `BanUser(communityID, userID string) error` in `internal/api/client.go`.
-  - **TUI**: Add `:ban <username>` command in the community view (requires resolving username to ID or adding search).
-- [ ] **Add a moderator** (`POST /communities/{id}/mods`)
-  - **API**: Add `AddModerator(communityID, userID string) error` in `internal/api/client.go`.
-  - **TUI**: Add `:mod add <username>` command.
-- [ ] **Update moderator permissions** (`PUT /communities/{id}/mods/{userId}`)
-  - **API**: Add `UpdateModerator(communityID, userID string, permissions map[string]interface{}) error` in `internal/api/client.go`.
-- [ ] **Remove a moderator** (`DELETE /communities/{id}/mods/{userId}`)
-  - **API**: Add `RemoveModerator(communityID, userID string) error` in `internal/api/client.go`.
+- [x] **Ban a user** (`POST /communities/{id}/ban`)
+  - **API**: Added `BanUser` in `internal/api/client.go`.
+  - **TUI**: Added `:ban <userID>` command.
+- [x] **Add a moderator** (`POST /communities/{id}/mods`)
+  - **API**: Added `AddModerator` in `internal/api/client.go`.
+  - **TUI**: Added `:mod add <userID>` command.
+- [x] **Update moderator permissions** (`PUT /communities/{id}/mods/{userId}`)
+  - **API**: Added `UpdateModerator` in `internal/api/client.go`.
+- [x] **Remove a moderator** (`DELETE /communities/{id}/mods/{userId}`)
+  - **API**: Added `RemoveModerator` in `internal/api/client.go`.
 
 ### Post Moderation
-- [ ] **Lock a post** (`POST /posts/{id}/lock`)
-  - **API**: Add `LockPost(postID string, lock bool) error` in `internal/api/client.go`.
-  - **TUI**: Add `:lock` command in `StatePostDetail`. Hide comment input if post is locked.
-- [ ] **Moderator delete post** (`DELETE /posts/{id}/mod`)
-  - **API**: Add `ModDeletePost(postID, reason string) error` in `internal/api/client.go`.
-  - **TUI**: Add `:mod-delete <reason>` command in `StatePostDetail`.
+- [x] **Lock a post** (`POST /posts/{id}/lock`)
+  - **API**: Added `LockPost` in `internal/api/client.go`.
+  - **TUI**: Added `:lock` and `:unlock` commands. Comment input is hidden if locked.
+- [x] **Moderator delete post** (`DELETE /posts/{id}/mod`)
+  - **API**: Added `ModDeletePost` in `internal/api/client.go`.
+  - **TUI**: Added `:mod-delete <reason>` command.
 
 ---
 

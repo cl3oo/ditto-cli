@@ -209,6 +209,29 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case ":joined":
 					m.State = StateLoading
 					return m, m.fetchJoinedCommunities()
+				case ":ban":
+					if len(parts) > 1 {
+						username := parts[1]
+						return m, m.performBanUser(username)
+					}
+				case ":mod":
+					if len(parts) > 2 && parts[1] == "add" {
+						username := parts[2]
+						return m, m.performAddModerator(username)
+					}
+				case ":lock":
+					if m.State == StatePostDetail {
+						return m, m.performLockPost(m.PostDetailModel.Post.ID, true)
+					}
+				case ":unlock":
+					if m.State == StatePostDetail {
+						return m, m.performLockPost(m.PostDetailModel.Post.ID, false)
+					}
+				case ":mod-delete":
+					if m.State == StatePostDetail && len(parts) > 1 {
+						reason := strings.Join(parts[1:], " ")
+						return m, m.performModDeletePost(m.PostDetailModel.Post.ID, reason)
+					}
 				case ":delete-comment":
 					if m.State == StatePostDetail && len(parts) > 1 {
 						return m, m.performDeleteComment(parts[1])
@@ -768,6 +791,64 @@ func (m MainModel) performToggleFollow(userID string) tea.Cmd {
 			return errorMsg(err)
 		}
 		return statusMsg("Toggle follow success")
+	}
+}
+
+func (m MainModel) performBanUser(userID string) tea.Cmd {
+	return func() tea.Msg {
+		var communityID string
+		if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
+			communityID = item.ID
+		} else if m.State == StatePostDetail {
+			communityID = m.PostDetailModel.Post.CommunityID
+		} else {
+			return errorMsg(errors.New("no community context for ban"))
+		}
+
+		err := m.Client.BanUser(communityID, userID)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return statusMsg("User banned from community")
+	}
+}
+
+func (m MainModel) performAddModerator(userID string) tea.Cmd {
+	return func() tea.Msg {
+		var communityID string
+		if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
+			communityID = item.ID
+		} else if m.State == StatePostDetail {
+			communityID = m.PostDetailModel.Post.CommunityID
+		} else {
+			return errorMsg(errors.New("no community context for mod add"))
+		}
+
+		err := m.Client.AddModerator(communityID, userID)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return statusMsg("Moderator added")
+	}
+}
+
+func (m MainModel) performLockPost(postID string, lock bool) tea.Cmd {
+	return func() tea.Msg {
+		err := m.Client.LockPost(postID, lock)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return m.fetchPostDetail(postID)()
+	}
+}
+
+func (m MainModel) performModDeletePost(postID, reason string) tea.Cmd {
+	return func() tea.Msg {
+		err := m.Client.ModDeletePost(postID, reason)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return statusMsg("Post deleted by moderator")
 	}
 }
 

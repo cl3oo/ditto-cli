@@ -89,6 +89,9 @@ func (m *PostDetailModel) SetContent(post types.Post, comments []types.Comment) 
 }
 
 func (m *PostDetailModel) SetShowCommentInput(show bool) {
+	if show && m.Post.Locked {
+		return
+	}
 	m.ShowCommentInput = show
 	if show {
 		m.CommentInput.Focus()
@@ -117,10 +120,15 @@ func (m *PostDetailModel) render() {
 	var s strings.Builder
 
 	// Render Post Header
-	s.WriteString(lipgloss.NewStyle().
+	headerStyle := lipgloss.NewStyle().
 		Bold(true).
-		Foreground(m.Theme.Accent).
-		Render(fmt.Sprintf("%s (p/%s)", m.Post.Title, m.Post.ID)) + "\n")
+		Foreground(m.Theme.Accent)
+	
+	headerText := fmt.Sprintf("%s (p/%s)", m.Post.Title, m.Post.ID)
+	if m.Post.Locked {
+		headerText += " [LOCKED]"
+	}
+	s.WriteString(headerStyle.Render(headerText) + "\n")
 	
 	s.WriteString(lipgloss.NewStyle().
 		Foreground(lipgloss.Color("241")).
