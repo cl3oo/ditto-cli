@@ -743,9 +743,15 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.Me = (*types.User)(msg)
 		return m, nil
 
+	case meErrorMsg:
+		return m.handleMeError(msg.err)
+
 	case walletMsg:
 		m.Wallet = (*types.Wallet)(msg)
 		return m, nil
+
+	case walletErrorMsg:
+		return m.handleWalletError(msg.err)
 
 	case commentSuccessMsg:
 		m.StatusMessage = string(msg)
@@ -757,35 +763,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		)
 
 	case errorMsg:
-		if errors.Is(msg, api.ErrUnauthorized) {
-			// If we are loading and get unauthorized, maybe only one request failed.
-			// Don't wipe the token immediately during initial boot unless we are sure.
-			if m.State != StateLoading {
-				if m.Client.Token != "" {
-					m.StatusMessage = "Session expired, please login again"
-					m.Client.SetToken("")
-					// DO NOT call m.Config.UpdateToken("") here to avoid wiping the file on transient errors
-				}
-				if m.State != StateLogin && m.State != StateRegister {
-					m.State = StateLogin
-				}
-			} else {
-				// If we are loading, just show error but keep the token for now
-				m.StatusMessage = "Some profile data failed to load (Unauthorized)"
-			}
-			return m, m.clearStatus()
-		}
-		if m.State == StateLogin {
-			m.LoginModel.Error = msg.Error()
-		}
-		if m.State == StateRegister {
-			m.RegisterModel.Error = msg.Error()
-		}
-		m.StatusMessage = fmt.Sprintf("Error: %v", msg)
-		if m.State == StateLoading {
-			m.State = StateFeed
-		}
-		return m, m.clearStatus()
+		return m.handleGenericError(error(msg))
 	}
 
 	// Delegate to sub-models
@@ -837,7 +815,9 @@ type appendCommentsMsg []types.Comment
 type loginSuccessMsg string
 type commentSuccessMsg string
 type meMsg *types.User
+type meErrorMsg struct{ err error }
 type walletMsg *types.Wallet
+type walletErrorMsg struct{ err error }
 type errorMsg error
 
 func (m MainModel) fetchFeed() tea.Cmd {
@@ -854,7 +834,7 @@ func (m MainModel) fetchMe() tea.Cmd {
 	return func() tea.Msg {
 		user, err := m.Client.GetMe()
 		if err != nil {
-			return errorMsg(err)
+			return meErrorMsg{err: err}
 		}
 		return meMsg(user)
 	}
@@ -864,10 +844,66 @@ func (m MainModel) fetchWallet() tea.Cmd {
 	return func() tea.Msg {
 		wallet, err := m.Client.GetWallet()
 		if err != nil {
-			return errorMsg(err)
+			return walletErrorMsg{err: err}
 		}
 		return walletMsg(wallet)
 	}
+}
+
+func (m MainModel) handleMeError(err error) (tea.Model, tea.Cmd) {
+	if errors.Is(err, api.ErrUnauthorized) {
+		if m.Client.Token != "" {
+			m.StatusMessage = "Session expired, please login again"
+			m.Client.SetToken("")
+		}
+		if m.State != StateLogin && m.State != StateRegister {
+			m.State = StateLogin
+		}
+		return m, m.clearStatus()
+	}
+
+	return m.handleGenericError(err)
+}
+
+func (m MainModel) handleWalletError(err error) (tea.Model, tea.Cmd) {
+	if errors.Is(err, api.ErrUnauthorized) {
+		m.Wallet = nil
+		return m, nil
+	}
+
+	return m.handleGenericError(err)
+}
+
+func (m MainModel) handleGenericError(err error) (tea.Model, tea.Cmd) {
+	if errors.Is(err, api.ErrUnauthorized) {
+		// If we are loading and get unauthorized, maybe only one request failed.
+		// Don't wipe the token immediately during initial boot unless we are sure.
+		if m.State != StateLoading {
+			if m.Client.Token != "" {
+				m.StatusMessage = "Session expired, please login again"
+				m.Client.SetToken("")
+				// DO NOT call m.Config.UpdateToken("") here to avoid wiping the file on transient errors
+			}
+			if m.State != StateLogin && m.State != StateRegister {
+				m.State = StateLogin
+			}
+		} else {
+			// If we are loading, just show error but keep the token for now
+			m.StatusMessage = "Some profile data failed to load (Unauthorized)"
+		}
+		return m, m.clearStatus()
+	}
+	if m.State == StateLogin {
+		m.LoginModel.Error = err.Error()
+	}
+	if m.State == StateRegister {
+		m.RegisterModel.Error = err.Error()
+	}
+	m.StatusMessage = fmt.Sprintf("Error: %v", err)
+	if m.State == StateLoading {
+		m.State = StateFeed
+	}
+	return m, m.clearStatus()
 }
 
 func (m MainModel) fetchCommunities() tea.Cmd {

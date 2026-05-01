@@ -41,6 +41,47 @@ func TestMainModel_Update_ErrorUnauthorized(t *testing.T) {
 	}
 }
 
+func TestMainModel_Update_MeErrorUnauthorizedGoesToLogin(t *testing.T) {
+	cfg := config.DefaultConfig()
+	m := NewMainModel(cfg)
+	m.State = StateFeed
+	m.Client.SetToken("still-valid-ish")
+
+	newModel, _ := m.Update(meErrorMsg{err: api.ErrUnauthorized})
+	updatedModel := newModel.(MainModel)
+
+	if updatedModel.State != StateLogin {
+		t.Fatalf("Expected state StateLogin after me unauthorized, got %v", updatedModel.State)
+	}
+	if updatedModel.Client.Token != "" {
+		t.Fatalf("Expected token to be cleared after me unauthorized")
+	}
+}
+
+func TestMainModel_Update_WalletErrorUnauthorizedIsIgnored(t *testing.T) {
+	cfg := config.DefaultConfig()
+	m := NewMainModel(cfg)
+	m.State = StateFeed
+	m.Client.SetToken("still-valid-ish")
+	m.Wallet = &types.Wallet{Coins: 42}
+
+	newModel, _ := m.Update(walletErrorMsg{err: api.ErrUnauthorized})
+	updatedModel := newModel.(MainModel)
+
+	if updatedModel.State != StateFeed {
+		t.Fatalf("Expected state to remain StateFeed after wallet unauthorized, got %v", updatedModel.State)
+	}
+	if updatedModel.Client.Token != "still-valid-ish" {
+		t.Fatalf("Expected token to be preserved after wallet unauthorized")
+	}
+	if updatedModel.StatusMessage != "" {
+		t.Fatalf("Expected no status message after wallet unauthorized, got %q", updatedModel.StatusMessage)
+	}
+	if updatedModel.Wallet != nil {
+		t.Fatalf("Expected wallet to be cleared after wallet unauthorized")
+	}
+}
+
 func TestMainModel_Update_LoginSuccess(t *testing.T) {
 	cfg := config.DefaultConfig()
 	m := NewMainModel(cfg)
