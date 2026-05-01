@@ -6,8 +6,8 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/spf13/cobra"
 	"github.com/rfcku/ditto-cli/internal/types"
+	"github.com/spf13/cobra"
 )
 
 var randomNum int
@@ -80,7 +80,7 @@ var getCommunitiesCmd = &cobra.Command{
 		w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
 		fmt.Fprintln(w, "ID\tNAME\tTITLE\tMEMBERS")
 		for _, c := range communities {
-			fmt.Fprintf(w, "%s\t%s\t%s\t%d\n", 
+			fmt.Fprintf(w, "%s\t%s\t%s\t%d\n",
 				c.ID, c.Name, c.Title, c.Scores.SubCount)
 		}
 		return w.Flush()

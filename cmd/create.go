@@ -7,12 +7,12 @@ import (
 )
 
 var (
-	postTitle         string
-	postContent       string
-	postCommunity     string
-	communityName     string
-	communityTitle    string
-	communityDesc     string
+	postTitle      string
+	postContent    string
+	postCommunity  string
+	communityName  string
+	communityTitle string
+	communityDesc  string
 )
 
 var createCmd = &cobra.Command{

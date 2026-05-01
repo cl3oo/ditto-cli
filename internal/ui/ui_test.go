@@ -24,11 +24,11 @@ func TestMainModel_Update_ErrorUnauthorized(t *testing.T) {
 	cfg := config.DefaultConfig()
 	m := NewMainModel(cfg)
 	m.State = StateFeed
-	
+
 	// Simulate unauthorized error message
 	newModel, _ := m.Update(errorMsg(api.ErrUnauthorized))
 	updatedModel := newModel.(MainModel)
-	
+
 	if updatedModel.State != StateLogin {
 		t.Errorf("Expected state StateLogin after ErrUnauthorized, got %v", updatedModel.State)
 	}
@@ -38,7 +38,7 @@ func TestMainModel_Update_LoginSuccess(t *testing.T) {
 	cfg := config.DefaultConfig()
 	m := NewMainModel(cfg)
 	m.State = StateLogin
-	
+
 	// Simulate login success message
 	newModel, _ := m.Update(loginSuccessMsg("new-token"))
 	updatedModel := newModel.(MainModel)

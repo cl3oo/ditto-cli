@@ -50,7 +50,7 @@ func (m SettingsModel) Update(msg tea.Msg) (SettingsModel, tea.Cmd) {
 func (m SettingsModel) View() string {
 	var s string
 	s += lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("62")).Render("Profile Settings") + "\n\n"
-	
+
 	s += "Avatar URL:\n" + m.Avatar.View() + "\n\n"
 
 	submitBtn := "[ Save ]"

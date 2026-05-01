@@ -101,7 +101,7 @@ func (m RegisterModel) View() string {
 	if m.Focused == 5 {
 		cancelBtn = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Bold(true).Render("[ Cancel ]")
 	}
-	
+
 	s += submitBtn + "  " + cancelBtn + "\n"
 
 	if m.Error != "" {
