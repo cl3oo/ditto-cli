@@ -15,52 +15,53 @@ To implement the missing API endpoints into the Ditto CLI, prioritizing core use
 - [x] Get community by ID (`GET /communities/{id}`)
 - [x] Join/Leave community (`POST /communities/{id}/join`)
 - [x] Create community (`POST /communities`)
-- [ ] **Update community** (`PUT /communities/{id}`)
-  - **API**: Add `UpdateCommunity(id string, data map[string]interface{}) error` in `internal/api/client.go`.
-  - **TUI**: Add `:edit` command when viewing a community. Create an `EditCommunityModel` similar to `CreatePostModel` to handle input.
-- [ ] **Delete community** (`DELETE /communities/{id}`)
-  - **API**: Add `DeleteCommunity(id string) error` in `internal/api/client.go`.
-  - **TUI**: Add `:delete` command when viewing a community. Prompt for confirmation (`y/n`).
-- [ ] **Get random communities** (`GET /communities/random`)
-  - **API**: Add `GetRandomCommunities(num int) ([]types.Community, error)` in `internal/api/client.go`.
-  - **TUI**: Add `:random` command in `StateCommunities` to trigger this fetch and update the list.
+- [x] **Update community** (`PUT /communities/{id}`)
+  - **API**: Added `UpdateCommunity` in `internal/api/client.go`.
+  - **TUI**: Added `:edit` command when viewing a community.
+- [x] **Delete community** (`DELETE /communities/{id}`)
+  - **API**: Added `DeleteCommunity` in `internal/api/client.go`.
+  - **TUI**: Added `:delete` command when viewing a community.
+- [x] **Get random communities** (`GET /communities/random`)
+  - **API**: Added `GetRandomCommunities` in `internal/api/client.go`.
+  - **TUI**: Added `:random` command in `StateCommunities`.
 
 ### Posts
 - [x] Get all posts (filtered) (`GET /posts`)
 - [x] Get trending posts (`GET /posts/trending`)
 - [x] Get post by ID (`GET /posts/{id}`)
 - [x] Create post (`POST /posts/{id}`)
-- [ ] **Update post** (`PUT /posts/{id}`)
-  - **API**: Add `UpdatePost(id, title, content string) error` in `internal/api/client.go`.
-  - **TUI**: Add `:edit` command in `StatePostDetail`. Create an `EditPostModel` allowing the user to modify the title/content.
-- [ ] **Delete post** (`DELETE /posts/{id}`)
-  - **API**: Add `DeletePost(id string) error` in `internal/api/client.go`.
-  - **TUI**: Add `:delete` command in `StatePostDetail`. Prompt for confirmation and return to `StateFeed` on success.
-- [ ] **Get random posts** (`GET /posts/random`)
-  - **API**: Add `GetRandomPosts(num int) ([]types.Post, error)` in `internal/api/client.go`.
-  - **TUI**: Add `:random` command in `StateFeed` to populate the feed with random posts.
+- [x] **Update post** (`PUT /posts/{id}`)
+  - **API**: Added `UpdatePost` in `internal/api/client.go`.
+  - **TUI**: Added `:edit` command in `StatePostDetail`.
+- [x] **Delete post** (`DELETE /posts/{id}`)
+  - **API**: Added `DeletePost` in `internal/api/client.go`.
+  - **TUI**: Added `:delete` command in `StatePostDetail`.
+- [x] **Get random posts** (`GET /posts/random`)
+  - **API**: Added `GetRandomPosts` in `internal/api/client.go`.
+  - **TUI**: Added `:random` command in `StateFeed`.
 
 ### Comments
 - [x] Get all comments (by target) (`GET /comments`)
 - [x] Create comment (`POST /comments/{id}`)
-- [ ] **Delete comment** (`DELETE /comments/{id}`)
-  - **API**: Add `DeleteComment(id string) error` in `internal/api/client.go`.
-  - **TUI**: Add keybinding (e.g., `D` or `:delete-comment <id>`) in `StatePostDetail` to remove a specific comment.
-- [ ] **Get random comments** (`GET /comments/random`)
-  - **API**: Add `GetRandomComments(num int) ([]types.Comment, error)` in `internal/api/client.go`.
-  - **CLI**: Add a specific CLI command `ditto get comments --random 5`.
+- [x] **Delete comment** (`DELETE /comments/{id}`)
+  - **API**: Added `DeleteComment` in `internal/api/client.go`.
+  - **TUI**: Added `:delete-comment <id>` command.
+- [x] **Get random comments** (`GET /comments/random`)
+  - **API**: Added `GetRandomComments` in `internal/api/client.go`.
+  - **CLI**: Added `ditto get comments --random 5`.
 
 ### Users
 - [x] Get current user (`GET /users/me`)
 - [x] Get user by ID (`GET /users/{id}`)
-- [ ] **Update user** (`PUT /users/{id}`)
-  - **API**: Add `UpdateUser(id string, data map[string]interface{}) error` in `internal/api/client.go`.
-  - **TUI**: Add a `StateProfileSettings` view to edit avatar, bio, or other editable user fields.
-- [ ] **Delete user** (`DELETE /users/{id}`)
-  - **API**: Add `DeleteUser(id string) error` in `internal/api/client.go`.
-  - **TUI/CLI**: Add extreme confirmation prompt before calling this endpoint (account deletion).
-- [ ] **Get random users** (`GET /users/random`)
-  - **API**: Add `GetRandomUsers(num int) ([]types.User, error)` in `internal/api/client.go`.
+- [x] **Update user** (`PUT /users/{id}`)
+  - **API**: Added `UpdateUser` in `internal/api/client.go`.
+  - **TUI**: Added `StateProfileSettings` view via `:settings`.
+- [x] **Delete user** (`DELETE /users/{id}`)
+  - **API**: Added `DeleteUser` in `internal/api/client.go`.
+  - **TUI/CLI**: Added `:delete-account` command.
+- [x] **Get random users** (`GET /users/random`)
+  - **API**: Added `GetRandomUsers` in `internal/api/client.go`.
+  - **CLI**: Added `ditto get users --random 5`.
 
 ---
 

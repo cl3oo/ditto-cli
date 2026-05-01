@@ -26,8 +26,12 @@ Ditto CLI is a Go-based terminal user interface (TUI) for the Ditto social platf
 - **Error Handling**: Use the central error reporting system (to be implemented) or consistent error wrapping.
 - **API Consistency**: All API calls must go through the `internal/api.Client`.
 - **Testing**:
+    - **Mandatory**: Every new feature or bug fix MUST include corresponding unit tests.
     - Add unit tests for new API methods in `internal/api/client_test.go`.
-    - Add unit tests for TUI logic in `internal/ui/ui_test.go` or per-view tests.
+    - Add unit tests for TUI logic in `internal/ui/ui_test.go`, `internal/ui/logic_test.go`, or per-view tests.
+- **Documentation**:
+    - **Mandatory**: Update `README.md` for any changes that affect the user experience (new commands, flags, or configuration).
+    - Keep `TASKS.md` updated with the current progress of the implementation phases.
 - **Conventions**:
     - Use vim-like keybindings where appropriate.
     - Follow standard Go formatting (`go fmt`) and linting rules.

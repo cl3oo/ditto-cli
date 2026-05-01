@@ -7,7 +7,10 @@ import (
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
+	"github.com/rfcku/ditto/cli/internal/types"
 )
+
+var randomNum int
 
 var getCmd = &cobra.Command{
 	Use:   "get",
@@ -17,9 +20,15 @@ var getCmd = &cobra.Command{
 
 var getPostsCmd = &cobra.Command{
 	Use:   "posts",
-	Short: "Get posts from trending feed",
+	Short: "Get posts",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		posts, err := client.GetTrendingPosts()
+		var posts []types.Post
+		var err error
+		if randomNum > 0 {
+			posts, err = client.GetRandomPosts(randomNum)
+		} else {
+			posts, err = client.GetTrendingPosts()
+		}
 		if err != nil {
 			return err
 		}
@@ -54,11 +63,16 @@ var getFeedCmd = &cobra.Command{
 }
 
 var getCommunitiesCmd = &cobra.Command{
-
 	Use:   "communities",
 	Short: "List all communities",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		communities, err := client.GetCommunities()
+		var communities []types.Community
+		var err error
+		if randomNum > 0 {
+			communities, err = client.GetRandomCommunities(randomNum)
+		} else {
+			communities, err = client.GetCommunities()
+		}
 		if err != nil {
 			return err
 		}
@@ -70,6 +84,47 @@ var getCommunitiesCmd = &cobra.Command{
 				c.ID, c.Name, c.Title, c.Scores.SubCount)
 		}
 		return w.Flush()
+	},
+}
+
+var getCommentsCmd = &cobra.Command{
+	Use:   "comments",
+	Short: "Get comments",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if randomNum > 0 {
+			comments, err := client.GetRandomComments(randomNum)
+			if err != nil {
+				return err
+			}
+			w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+			fmt.Fprintln(w, "ID\tCONTENT\tAUTHOR\tSCORE")
+			for _, c := range comments {
+				fmt.Fprintf(w, "%s\t%s\t%s\t%d\n",
+					c.ID, c.Content, c.Author.Username, c.Scores.VoteScore)
+			}
+			return w.Flush()
+		}
+		return fmt.Errorf("please use --random flag for now")
+	},
+}
+
+var getUsersCmd = &cobra.Command{
+	Use:   "users",
+	Short: "Get users",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if randomNum > 0 {
+			users, err := client.GetRandomUsers(randomNum)
+			if err != nil {
+				return err
+			}
+			w := tabwriter.NewWriter(os.Stdout, 0, 8, 2, ' ', 0)
+			fmt.Fprintln(w, "ID\tUSERNAME")
+			for _, u := range users {
+				fmt.Fprintf(w, "%s\t%s\n", u.ID, u.Username)
+			}
+			return w.Flush()
+		}
+		return fmt.Errorf("please use --random flag for now")
 	},
 }
 
@@ -89,10 +144,12 @@ var getMeCmd = &cobra.Command{
 }
 
 func init() {
+	getCmd.PersistentFlags().IntVarP(&randomNum, "random", "r", 0, "Number of random items to fetch")
 	rootCmd.AddCommand(getCmd)
 	getCmd.AddCommand(getPostsCmd)
 	getCmd.AddCommand(getFeedCmd)
 	getCmd.AddCommand(getCommunitiesCmd)
 	getCmd.AddCommand(getMeCmd)
+	getCmd.AddCommand(getCommentsCmd)
+	getCmd.AddCommand(getUsersCmd)
 }
-

@@ -37,6 +37,44 @@ make build
 | :--- | :--- | :--- |
 | `DITTO_API_URL` | The URL of the Ditto API. | `http://localhost:9001` |
 
+## Usage
+
+### TUI Commands
+
+While in the TUI, press `:` to enter command mode:
+
+| Command | Action |
+| :--- | :--- |
+| `:f`, `:feed` | Return to the home feed |
+| `:c`, `:communities` | View communities |
+| `:n`, `:new` | Create a new post |
+| `:s <query>` | Search communities |
+| `:edit` | Edit the current post or community |
+| `:delete` | Delete the current post or community |
+| `:random` | Fetch 10 random posts or communities |
+| `:delete-comment <id>` | Delete a specific comment by ID |
+| `:settings` | Edit your user profile (avatar) |
+| `:delete-account` | Permanently delete your account |
+| `:q`, `:quit` | Exit the application |
+
+### CLI Mode
+
+You can also use `ditto-cli` for one-off operations:
+
+```bash
+# Get random posts
+./ditto-cli get posts --random 5
+
+# Get random communities
+./ditto-cli get communities --random 10
+
+# Get random users
+./ditto-cli get users --random 3
+
+# Get random comments
+./ditto-cli get comments --random 5
+```
+
 ## Development
 
 ### Key Commands

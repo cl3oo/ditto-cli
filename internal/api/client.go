@@ -328,6 +328,84 @@ func (c *Client) SearchCommunities(query string) ([]types.Community, error) {
 
 func (c *Client) GetUser(id string) (*types.User, error) {
 	var user types.User
-	err := c.Request("GET", fmt.Sprintf("/users/%s", id), nil, &user)
+	err := c.Request("GET", fmt.Sprintf("/users/%s/", id), nil, &user)
 	return &user, err
+}
+
+func (c *Client) GetCommunity(id string) (*types.Community, error) {
+	var community types.Community
+	err := c.Request("GET", fmt.Sprintf("/communities/%s/", id), nil, &community)
+	return &community, err
+}
+
+func (c *Client) GetTrendingCommunities() ([]types.Community, error) {
+	var res struct {
+		Data []types.Community `json:"data"`
+	}
+	err := c.Request("GET", "/communities/trending/", nil, &res)
+	return res.Data, err
+}
+
+func (c *Client) UpdateCommunity(id string, data map[string]interface{}) error {
+	return c.Request("PUT", fmt.Sprintf("/communities/%s/", id), data, nil)
+}
+
+func (c *Client) DeleteCommunity(id string) error {
+	return c.Request("DELETE", fmt.Sprintf("/communities/%s/", id), nil, nil)
+}
+
+func (c *Client) GetRandomCommunities(num int) ([]types.Community, error) {
+	var res struct {
+		Data []types.Community `json:"data"`
+	}
+	err := c.Request("GET", fmt.Sprintf("/communities/random?num=%d", num), nil, &res)
+	return res.Data, err
+}
+
+func (c *Client) UpdatePost(id, title, content string) error {
+	body := map[string]string{
+		"title":   title,
+		"content": content,
+	}
+	return c.Request("PUT", fmt.Sprintf("/posts/%s/", id), body, nil)
+}
+
+func (c *Client) DeletePost(id string) error {
+	return c.Request("DELETE", fmt.Sprintf("/posts/%s/", id), nil, nil)
+}
+
+func (c *Client) GetRandomPosts(num int) ([]types.Post, error) {
+	var res struct {
+		Data []types.Post `json:"data"`
+	}
+	err := c.Request("GET", fmt.Sprintf("/posts/random?num=%d", num), nil, &res)
+	return res.Data, err
+}
+
+func (c *Client) DeleteComment(id string) error {
+	return c.Request("DELETE", fmt.Sprintf("/comments/%s/", id), nil, nil)
+}
+
+func (c *Client) GetRandomComments(num int) ([]types.Comment, error) {
+	var res struct {
+		Data []types.Comment `json:"data"`
+	}
+	err := c.Request("GET", fmt.Sprintf("/comments/random?num=%d", num), nil, &res)
+	return res.Data, err
+}
+
+func (c *Client) UpdateUser(id string, data map[string]interface{}) error {
+	return c.Request("PUT", fmt.Sprintf("/users/%s/", id), data, nil)
+}
+
+func (c *Client) DeleteUser(id string) error {
+	return c.Request("DELETE", fmt.Sprintf("/users/%s/", id), nil, nil)
+}
+
+func (c *Client) GetRandomUsers(num int) ([]types.User, error) {
+	var res struct {
+		Data []types.User `json:"data"`
+	}
+	err := c.Request("GET", fmt.Sprintf("/users/random?num=%d", num), nil, &res)
+	return res.Data, err
 }

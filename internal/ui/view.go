@@ -28,6 +28,12 @@ func (m MainModel) View() string {
 		content = m.CommunityModel.View()
 	case StateCreatePost:
 		content = m.CreatePostModel.View()
+	case StateEditPost:
+		content = m.EditPostModel.View()
+	case StateEditCommunity:
+		content = m.EditCommunityModel.View()
+	case StateProfileSettings:
+		content = m.SettingsModel.View()
 	case StateRegister:
 		content = m.RegisterModel.View()
 	case StateSelection:
@@ -94,6 +100,12 @@ func (m MainModel) renderHeader() string {
 		bc += "> COMMUNITIES "
 	case StateCreatePost:
 		bc += "> NEW POST "
+	case StateEditPost:
+		bc += "> EDIT POST "
+	case StateEditCommunity:
+		bc += "> EDIT COMMUNITY "
+	case StateProfileSettings:
+		bc += "> SETTINGS "
 	case StateLogin:
 		bc += "> LOGIN "
 	case StateRegister:

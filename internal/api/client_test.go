@@ -224,3 +224,56 @@ func TestClient_Logging(t *testing.T) {
 		t.Fatal("Expected log file to be non-empty")
 	}
 }
+
+func TestClient_UpdateCommunity(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "PUT" || !strings.Contains(r.URL.Path, "/communities/c1") {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	err := client.UpdateCommunity("c1", map[string]interface{}{"title": "New Title"})
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+}
+
+func TestClient_DeletePost(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != "DELETE" || !strings.Contains(r.URL.Path, "/posts/p1") {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	err := client.DeletePost("p1")
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+}
+
+func TestClient_GetRandomPosts(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"data": [{"id": "r1", "title": "Random Post"}]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	posts, err := client.GetRandomPosts(1)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	if len(posts) != 1 || posts[0].Title != "Random Post" {
+		t.Errorf("Unexpected posts: %+v", posts)
+	}
+}

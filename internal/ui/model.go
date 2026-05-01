@@ -27,6 +27,9 @@ const (
 	StateCreatePost
 	StateSelection
 	StateRegister
+	StateEditPost
+	StateEditCommunity
+	StateProfileSettings
 )
 
 type MainModel struct {
@@ -50,6 +53,9 @@ type MainModel struct {
 	PostDetailModel views.PostDetailModel
 	CommunityModel  views.CommunityModel
 	CreatePostModel views.CreatePostModel
+	EditPostModel      views.CreatePostModel
+	EditCommunityModel views.CreatePostModel
+	SettingsModel      views.SettingsModel
 }
 
 func NewMainModel(cfg *config.Config) MainModel {
@@ -65,6 +71,9 @@ func NewMainModel(cfg *config.Config) MainModel {
 		PostDetailModel: views.NewPostDetailModel(),
 		CommunityModel:  views.NewCommunityModel(),
 		CreatePostModel: views.NewCreatePostModel(),
+		EditPostModel:      views.NewCreatePostModel(),
+		EditCommunityModel: views.NewCreatePostModel(),
+		SettingsModel:      views.NewSettingsModel(),
 	}
 	m.Client.SetToken(cfg.Token)
 	m.FeedModel.SetTheme(m.Theme.Selected)
@@ -151,6 +160,59 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 					m.State = StateFeed // default to feed
 					return m, m.fetchFeed()
+				case ":delete":
+					if m.State == StatePostDetail {
+						return m, m.performDeletePost(m.PostDetailModel.Post.ID)
+					}
+					if m.State == StateCommunities {
+						if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
+							return m, m.performDeleteCommunity(item.ID)
+						}
+					}
+				case ":edit":
+					if m.State == StatePostDetail {
+						m.EditPostModel.Title.SetValue(m.PostDetailModel.Post.Title)
+						m.EditPostModel.Content.SetValue(m.PostDetailModel.Post.Content)
+						m.EditPostModel.CommunityID.SetValue(m.PostDetailModel.Post.Community.Name)
+						m.EditPostModel.CommunityID.Blur()
+						m.EditPostModel.Title.Focus()
+						m.State = StateEditPost
+						return m, nil
+					}
+					if m.State == StateCommunities {
+						if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
+							m.EditCommunityModel.Title.SetValue(item.Community.Title)
+							m.EditCommunityModel.CommunityID.SetValue(item.Community.Name)
+							m.EditCommunityModel.Content.SetValue(item.Community.Description)
+							m.EditCommunityModel.CommunityID.Blur()
+							m.EditCommunityModel.Title.Focus()
+							m.State = StateEditCommunity
+							return m, nil
+						}
+					}
+				case ":random":
+					prevState := m.State
+					m.State = StateLoading
+					if prevState == StateFeed {
+						return m, m.fetchRandomPosts()
+					} else if prevState == StateCommunities {
+						return m, m.fetchRandomCommunities()
+					}
+					m.State = prevState
+				case ":delete-comment":
+					if m.State == StatePostDetail && len(parts) > 1 {
+						return m, m.performDeleteComment(parts[1])
+					}
+				case ":settings":
+					if m.Me != nil {
+						m.SettingsModel.Avatar.SetValue(m.Me.Avatar)
+					}
+					m.State = StateProfileSettings
+					return m, nil
+				case ":delete-account":
+					if m.Me != nil {
+						return m, m.performDeleteUser(m.Me.ID)
+					}
 				case ":cc":
 					if m.State == StatePostDetail {
 						m.PostDetailModel.SetShowCommentInput(true)
@@ -278,6 +340,18 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.State = StateLoading
 				return m, m.performCreatePost()
 			}
+			if m.State == StateEditPost && m.EditPostModel.Focused == 3 {
+				m.State = StateLoading
+				return m, m.performUpdatePost()
+			}
+			if m.State == StateEditCommunity && m.EditCommunityModel.Focused == 3 {
+				m.State = StateLoading
+				return m, m.performUpdateCommunity()
+			}
+			if m.State == StateProfileSettings && m.SettingsModel.Focused == 1 {
+				m.State = StateLoading
+				return m, m.performUpdateUser()
+			}
 			if m.State == StateFeed {
 				if item, ok := m.FeedModel.List.SelectedItem().(views.PostItem); ok {
 					m.State = StateLoading
@@ -377,6 +451,15 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	case StateCreatePost:
 		m.CreatePostModel, cmd = m.CreatePostModel.Update(msg)
+		cmds = append(cmds, cmd)
+	case StateEditPost:
+		m.EditPostModel, cmd = m.EditPostModel.Update(msg)
+		cmds = append(cmds, cmd)
+	case StateEditCommunity:
+		m.EditCommunityModel, cmd = m.EditCommunityModel.Update(msg)
+		cmds = append(cmds, cmd)
+	case StateProfileSettings:
+		m.SettingsModel, cmd = m.SettingsModel.Update(msg)
 		cmds = append(cmds, cmd)
 	case StateRegister:
 		m.RegisterModel, cmd = m.RegisterModel.Update(msg)
@@ -550,5 +633,123 @@ func (m MainModel) performRegister() tea.Cmd {
 			return errorMsg(err)
 		}
 		return loginSuccessMsg(token)
+	}
+}
+
+func (m MainModel) performUpdatePost() tea.Cmd {
+	return func() tea.Msg {
+		err := m.Client.UpdatePost(
+			m.PostDetailModel.Post.ID,
+			m.EditPostModel.Title.Value(),
+			m.EditPostModel.Content.Value(),
+		)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return m.fetchPostDetail(m.PostDetailModel.Post.ID)()
+	}
+}
+
+func (m MainModel) performDeletePost(id string) tea.Cmd {
+	return func() tea.Msg {
+		err := m.Client.DeletePost(id)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return statusMsg("Post deleted")
+	}
+}
+
+func (m MainModel) performUpdateCommunity() tea.Cmd {
+	return func() tea.Msg {
+		// Map from our "CreatePostModel" fields to Community fields
+		data := map[string]interface{}{
+			"title":       m.EditCommunityModel.Title.Value(),
+			"description": m.EditCommunityModel.Content.Value(),
+		}
+		// Community Name is typically not editable after creation in many systems, 
+		// but we used CommunityID field for it.
+		
+		var communityID string
+		if item, ok := m.CommunityModel.List.SelectedItem().(views.CommunityItem); ok {
+			communityID = item.ID
+		} else {
+			return errorMsg(errors.New("no community selected"))
+		}
+
+		err := m.Client.UpdateCommunity(communityID, data)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return m.fetchCommunities()()
+	}
+}
+
+func (m MainModel) performDeleteCommunity(id string) tea.Cmd {
+	return func() tea.Msg {
+		err := m.Client.DeleteCommunity(id)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return statusMsg("Community deleted")
+	}
+}
+
+func (m MainModel) performDeleteComment(id string) tea.Cmd {
+	return func() tea.Msg {
+		err := m.Client.DeleteComment(id)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return statusMsg("Comment deleted")
+	}
+}
+
+func (m MainModel) fetchRandomPosts() tea.Cmd {
+	return func() tea.Msg {
+		posts, err := m.Client.GetRandomPosts(10)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return feedMsg(posts)
+	}
+}
+
+func (m MainModel) fetchRandomCommunities() tea.Cmd {
+	return func() tea.Msg {
+		communities, err := m.Client.GetRandomCommunities(10)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return communitiesMsg(communities)
+	}
+}
+
+func (m MainModel) performUpdateUser() tea.Cmd {
+	return func() tea.Msg {
+		if m.Me == nil {
+			return errorMsg(errors.New("not logged in"))
+		}
+		data := map[string]interface{}{
+			"avatar": m.SettingsModel.Avatar.Value(),
+		}
+		err := m.Client.UpdateUser(m.Me.ID, data)
+		if err != nil {
+			return errorMsg(err)
+		}
+		return m.fetchMe()()
+	}
+}
+
+func (m MainModel) performDeleteUser(id string) tea.Cmd {
+	return func() tea.Msg {
+		err := m.Client.DeleteUser(id)
+		if err != nil {
+			return errorMsg(err)
+		}
+		// Logout after deletion
+		m.Client.SetToken("")
+		m.Config.UpdateToken("")
+		return statusMsg("Account deleted")
 	}
 }
