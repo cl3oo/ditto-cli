@@ -14,11 +14,16 @@ var registerCmd = &cobra.Command{
 	Use:   "register",
 	Short: "Register a new account",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if username == "" || password == "" || email == "" {
-			return fmt.Errorf("username, email, and password are required")
+		if username == "" || email == "" {
+			return fmt.Errorf("username and email are required")
 		}
 
-		token, err := client.Register(username, email, password)
+		resolvedPassword, err := resolvePassword(cmd.OutOrStdout())
+		if err != nil {
+			return err
+		}
+
+		token, err := client.Register(username, email, resolvedPassword)
 		if err != nil {
 			return err
 		}

@@ -26,7 +26,7 @@ func TestRegisterRequiresExplicitEmail(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected missing email to fail")
 	}
-	if got := err.Error(); got != "username, email, and password are required" {
+	if got := err.Error(); got != "username and email are required" {
 		t.Fatalf("unexpected error: %s", got)
 	}
 }

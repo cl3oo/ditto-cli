@@ -22,11 +22,16 @@ var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Log in to Ditto",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if username == "" || password == "" {
-			return fmt.Errorf("username and password are required")
+		if username == "" {
+			return fmt.Errorf("username is required")
 		}
 
-		token, err := client.Login(username, password)
+		resolvedPassword, err := resolvePassword(cmd.OutOrStdout())
+		if err != nil {
+			return err
+		}
+
+		token, err := client.Login(username, resolvedPassword)
 		if err != nil {
 			return err
 		}
