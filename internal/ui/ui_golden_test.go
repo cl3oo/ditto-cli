@@ -267,6 +267,16 @@ func TestGoldenSettingsLightTheme(t *testing.T) {
 	assertGolden(t, "settings_light_theme.golden", m.View())
 }
 
+func TestGoldenHeaderNarrowStack(t *testing.T) {
+	m := newGoldenMainModel(34, 20, "")
+	m.State = StateProfileSettings
+	m.Client.SetToken("token-123")
+	m.Me = &types.User{Username: "terminalfox"}
+	m.Wallet = &types.Wallet{Coins: 420, Tokens: 7}
+
+	assertGolden(t, "header_narrow_stack.golden", m.renderHeader())
+}
+
 func newGoldenMainModel(width, height int, themeName string) MainModel {
 	cfg := config.DefaultConfig()
 	if themeName != "" {
