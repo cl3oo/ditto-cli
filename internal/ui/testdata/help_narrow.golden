@@ -1,17 +1,18 @@
 
   # Ditto CLI Manual 📖
 
-  Welcome to Ditto! This guide will help you navigate
-  and interact with the platform.
+  Welcome to Ditto. This guide sticks to what the TUI
+  actually does right now.
 
   ## Navigation 🕹️
 
-  • **j / k** or **Up / Down**: Navigate through lists
-  (Feed, Communities, Comments).
-  • **Enter**: Open a post, join a community, or
-  submit a form.
+  • **j / k** or **Up / Down**: Move through lists and
+  comments.
+  • **Enter**: Open the selected post or community, or
+  submit the focused form.
   • **q**: Go back to the previous screen.
-  • **esc**: Clear the command buffer or exit a sub-
-  menu.
+  • **esc**: Cancel command mode, dialogs, or inline
+  reply/edit flows.
+  • **:**: Open the command palette.
 
-  ## Post Detail Actions 📄
+  ## Contextual actions by screen 🧭

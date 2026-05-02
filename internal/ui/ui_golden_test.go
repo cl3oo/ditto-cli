@@ -54,9 +54,10 @@ func TestGoldenLoginView(t *testing.T) {
 }
 
 func TestGoldenHelpViewNarrow(t *testing.T) {
+	cfg := config.DefaultConfig()
+	main := NewMainModel(cfg)
 	m := views.NewHelpModel()
-	m.SetSize(60, 18)
-	m.Ready = true
+	m.SetContent(main.helpManualContent())
 	m.SetSize(60, 18)
 
 	assertGolden(t, "help_narrow.golden", m.View())

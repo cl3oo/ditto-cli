@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -114,7 +115,12 @@ func TestMainModel_RenderFooterHelp(t *testing.T) {
 		{
 			name:     "feed footer shows global and feed actions",
 			state:    StateFeed,
-			contains: []string{"Global", "Here", "n new post", "s search"},
+			contains: []string{"Global", "Here", "n new post", "s search", ":man manual"},
+		},
+		{
+			name:     "communities footer only shows truthful actions",
+			state:    StateCommunities,
+			contains: []string{"enter open", ":joined joined", ":random discover"},
 		},
 		{
 			name:  "post detail reply mode shows reply hints",
@@ -151,6 +157,26 @@ func TestMainModel_RenderFooterHelp(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestMainModel_HelpManualContent(t *testing.T) {
+	cfg := config.DefaultConfig()
+	m := NewMainModel(cfg)
+
+	content := m.helpManualContent()
+	for _, want := range []string{
+		"Open the selected post or community",
+		":joined**: List communities you joined.",
+		fmt.Sprintf("**%s**: Open the command palette.", cfg.Keys.Palette),
+	} {
+		if !strings.Contains(content, want) {
+			t.Fatalf("help content %q missing %q", content, want)
+		}
+	}
+
+	if strings.Contains(content, "join a community") {
+		t.Fatalf("help content should not advertise join-on-enter")
 	}
 }
 

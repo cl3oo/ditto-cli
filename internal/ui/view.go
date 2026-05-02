@@ -104,41 +104,8 @@ func (m MainModel) View() string {
 }
 
 func (m MainModel) renderFooterHelp() string {
-	global := []string{": palette", "enter open", "q back", "? :man"}
-	local := []string{}
-
-	switch m.State {
-	case StateFeed:
-		local = []string{
-			"j/k move",
-			fmt.Sprintf("%s/%s vote", m.Config.Keys.Upvote, m.Config.Keys.Downvote),
-			fmt.Sprintf("%s new post", m.Config.Keys.New),
-			fmt.Sprintf("%s refresh", m.Config.Keys.Refresh),
-			"s search",
-		}
-	case StateCommunities:
-		local = []string{"j/k move", "enter open/join", fmt.Sprintf("%s new post", m.Config.Keys.New), ":random discover"}
-	case StatePostDetail:
-		if m.PostDetailModel.ShowCommentInput {
-			local = []string{"type reply", "enter submit", "esc cancel"}
-		} else if m.PostDetailModel.SelectedIdx >= 0 {
-			local = []string{"j/k comments", "r reply", "p profile", "s share", "R report"}
-		} else {
-			local = []string{"j/k comments", "r reply", "p author", "s share", "L load more"}
-		}
-	case StateCreatePost:
-		local = []string{"tab next field", "shift+tab prev", "enter submit", "esc cancel"}
-	case StateEditPost, StateEditCommunity, StateProfileSettings, StateRegister, StateLogin:
-		local = []string{"tab next field", "shift+tab prev", "enter submit", "esc cancel"}
-	case StateHelp:
-		local = []string{"j/k scroll", "q close manual"}
-	case StateSelection:
-		local = []string{"p post", "c community", "esc cancel"}
-	case StateLoading:
-		local = []string{"wait", "q quit"}
-	case StateConfirm:
-		local = []string{"enter confirm", "q cancel", "esc cancel"}
-	}
+	global := m.globalFooterActions()
+	local := m.localFooterActions()
 
 	section := func(title string, items []string, titleStyle, itemStyle lipgloss.Style) string {
 		if len(items) == 0 {

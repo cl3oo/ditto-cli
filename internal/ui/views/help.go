@@ -13,6 +13,7 @@ type HelpModel struct {
 	Width    int
 	Height   int
 	Theme    theme.Theme
+	Content  string
 }
 
 func NewHelpModel() HelpModel {
@@ -53,12 +54,21 @@ func (m *HelpModel) SetTheme(t theme.Theme) {
 	}
 }
 
+func (m *HelpModel) SetContent(content string) {
+	m.Content = content
+	if m.Width > 0 && m.Height > 0 {
+		m.render()
+	}
+}
+
 func (m *HelpModel) render() {
 	if m.Width == 0 || m.Height == 0 {
 		return
 	}
 
-	content := `
+	content := m.Content
+	if content == "" {
+		content = `
 # Ditto CLI Manual 📖
 
 Welcome to Ditto! This guide will help you navigate and interact with the platform.
@@ -98,6 +108,7 @@ Press **:** to enter command mode:
 ---
 Press **q** to return to the feed.
 `
+	}
 	var renderer *glamour.TermRenderer
 	if m.Theme.Markdown != "" {
 		renderer, _ = glamour.NewTermRenderer(

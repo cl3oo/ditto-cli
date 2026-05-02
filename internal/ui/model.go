@@ -123,6 +123,7 @@ func NewMainModel(cfg *config.Config) MainModel {
 	m.EditCommunityModel.SetTheme(t)
 	m.SettingsModel.SetTheme(t)
 	m.PaletteModel.SetTheme(t)
+	m.HelpModel.SetContent(m.helpManualContent())
 
 	return m
 }
@@ -228,8 +229,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case ":q", ":quit":
 					return m, tea.Quit
 				case ":man":
-					m.State = StateHelp
-					m.HelpModel.SetSize(m.Width, m.Height-4)
+					m.openHelp()
 					return m, nil
 				case ":logout":
 					m.Client.SetToken("")
@@ -816,6 +816,12 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, tea.Batch(cmds...)
+}
+
+func (m *MainModel) openHelp() {
+	m.State = StateHelp
+	m.HelpModel.SetContent(m.helpManualContent())
+	m.HelpModel.SetSize(m.Width, m.Height-4)
 }
 
 type feedMsg []types.Post
