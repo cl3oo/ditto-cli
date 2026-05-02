@@ -20,9 +20,12 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:     "ditto-cli",
-	Short:   "Ditto CLI - A command line interface for Ditto",
-	Long:    `Ditto CLI allows you to interact with the Ditto API and launch the TUI.`,
+	Use:   "ditto-cli",
+	Short: "Ditto CLI - A command line interface for Ditto",
+	Long: `Ditto CLI lets you work with Ditto in two ways:
+- run 'ditto-cli tui' to launch the full terminal UI
+- run 'ditto-cli <command>' for one-off CLI actions`,
+	Example: "  ditto-cli tui\n  ditto-cli get posts --random 5\n  ditto-cli version",
 	Version: versionString(),
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		var err error
@@ -50,9 +53,6 @@ var rootCmd = &cobra.Command{
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		// If no command is provided, we can either show help or run TUI.
-		// User said "if the user executes 'ditto tui' it will launch the tui app",
-		// so show help by default if no args.
 		_ = cmd.Help()
 	},
 }

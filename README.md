@@ -38,6 +38,8 @@ ditto-cli tui
 ditto-cli get posts --random 5
 ```
 
+If you run `ditto-cli` with no subcommand, it prints help. Use `ditto-cli tui` when you want the full terminal app.
+
 ### Install prebuilt binaries from GitHub Releases
 
 Download the archive that matches your OS and CPU from the Releases page, then extract it and move `ditto-cli` somewhere on your `PATH`.
@@ -58,6 +60,9 @@ mv ditto-cli /usr/local/bin/
 ## Usage
 
 Ditto CLI supports two workflows. You can also check the exact build metadata with `ditto-cli version`:
+
+- `ditto-cli tui` launches the full TUI.
+- `ditto-cli` by itself prints command help so you can discover subcommands.
 
 - **TUI mode** for browsing, posting, moderation, and day-to-day navigation inside the terminal.
 - **CLI mode** for one-off actions, scripting, smoke tests, and quick API checks.
@@ -111,6 +116,9 @@ The TUI also keeps a sticky footer at the bottom with context-aware hints, so th
 You can also use `ditto-cli` for one-off operations:
 
 ```bash
+# Show root help and available subcommands
+./dist/ditto-cli
+
 # Launch the TUI without building first
 go run . tui
 
