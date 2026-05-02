@@ -1,11 +1,28 @@
-
-  Register a New Ditto Account
-
-  > astrocat
-  > astrocat@example.com
-  > •••••••••
-  > •••••••••
-
-  [ Register ]  [ Cancel ]
-
-  passwords do not match
+╭────────────────────────────────────────────────────────────────────────╮
+│                                                                        │
+│    Create your Ditto account                                           │
+│                                                                        │
+│  Set up a new account to start posting and exploring communities.      │
+│                                                                        │
+│  Username                                                              │
+│  > astrocat                                                            │
+│                                                                        │
+│  Email                                                                 │
+│  > astrocat@example.com                                                │
+│                                                                        │
+│  Password                                                              │
+│  > •••••••••                                                           │
+│                                                                        │
+│  Confirm Password                                                      │
+│  > •••••••••                                                           │
+│                                                                        │
+│  [ Create Account ]  [ Cancel ]                                        │
+│                                                                        │
+│  ╭──────────────────────────╮                                          │
+│  │                          │                                          │
+│  │  Registration failed     │                                          │
+│  │  passwords do not match  │                                          │
+│  │                          │                                          │
+│  ╰──────────────────────────╯                                          │
+│                                                                        │
+╰────────────────────────────────────────────────────────────────────────╯

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
@@ -16,6 +15,7 @@ type LoginModel struct {
 	SuccessToken string
 	LoggedIn     bool
 	Theme        theme.Theme
+	Width        int
 }
 
 func NewLoginModel() LoginModel {
@@ -27,6 +27,8 @@ func NewLoginModel() LoginModel {
 	p.Placeholder = "Password"
 	p.EchoMode = textinput.EchoPassword
 	p.EchoCharacter = '•'
+	u.Width = fitInputWidth(0, 40)
+	p.Width = fitInputWidth(0, 40)
 
 	return LoginModel{
 		Username: u,
@@ -41,6 +43,13 @@ func (m LoginModel) Init() tea.Cmd {
 
 func (m *LoginModel) SetTheme(t theme.Theme) {
 	m.Theme = t
+}
+
+func (m *LoginModel) SetSize(width int) {
+	m.Width = width
+	inputWidth := fitInputWidth(width, 40)
+	m.Username.Width = inputWidth
+	m.Password.Width = inputWidth
 }
 
 func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
@@ -76,41 +85,40 @@ func (m LoginModel) Update(msg tea.Msg) (LoginModel, tea.Cmd) {
 }
 
 func (m LoginModel) View() string {
-	var s string
-
 	title := "Login to Ditto"
+	subtitle := "Use your Ditto account to unlock the TUI."
+	sections := []formSection{}
+	var feedback string
+
 	if m.LoggedIn {
-		title = "Successfully Authenticated! ✨"
+		title = "You are in"
+		subtitle = "The session token is already saved locally."
 	}
-	s += m.Theme.AccentText.Bold(true).Render(title) + "\n\n"
 
 	if !m.LoggedIn {
-		s += m.Username.View() + "\n"
-		s += m.Password.View() + "\n\n"
+		sections = append(sections,
+			formSection{Label: "Username", Content: m.Username.View()},
+			formSection{Label: "Password", Content: m.Password.View()},
+		)
 	} else {
 		displayToken := m.SuccessToken
 		if len(displayToken) > 8 {
 			displayToken = displayToken[:8] + "..."
 		}
-		s += m.Theme.Success.Render("Welcome back! Your session token was saved.") + "\n"
-		s += m.Theme.TextSubtle.Render(displayToken) + "\n\n"
+		feedback = renderFormFeedback(m.Theme, "success", "Session saved", "Welcome back. Token preview: "+displayToken)
 	}
 
-	submitLabel := "[ Submit ]"
+	submitLabel := "[ Log In ]"
 	if m.LoggedIn {
-		submitLabel = "[ Save & Continue ]"
+		submitLabel = "[ Continue ]"
 	}
 
 	submitBtn := m.Theme.RenderPrimaryButton(submitLabel, m.Focused == 2)
-	registerBtn := m.Theme.RenderSecondaryButton("[ Register New Account ]", m.Focused == 3)
-
-	s += submitBtn + "  " + registerBtn + "\n"
+	registerBtn := m.Theme.RenderSecondaryButton("[ Create Account ]", m.Focused == 3)
 
 	if m.Error != "" {
-		cuteMsg := "Oopsie! Something went wrong... (´･ω･`)"
-		s += "\n" + m.Theme.TextSubtle.Render(cuteMsg) + "\n"
-		s += m.Theme.Error.Render(fmt.Sprintf("Error: %s", m.Error))
+		feedback = renderFormFeedback(m.Theme, "error", "Could not log in", fmt.Sprintf("Error: %s", m.Error))
 	}
 
-	return lipgloss.NewStyle().Padding(1, 2).Render(s)
+	return renderFormShell(m.Theme, m.Width, title, subtitle, sections, []string{submitBtn, registerBtn}, feedback)
 }

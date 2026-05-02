@@ -3,7 +3,6 @@ package views
 import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
@@ -15,6 +14,7 @@ type RegisterModel struct {
 	Focused  int // 0: username, 1: email, 2: password, 3: confirm, 4: submit, 5: cancel
 	Error    string
 	Theme    theme.Theme
+	Width    int
 }
 
 func NewRegisterModel() RegisterModel {
@@ -34,6 +34,11 @@ func NewRegisterModel() RegisterModel {
 	c.Placeholder = "Confirm Password"
 	c.EchoMode = textinput.EchoPassword
 	c.EchoCharacter = '•'
+	fieldWidth := fitInputWidth(0, 40)
+	u.Width = fieldWidth
+	e.Width = fieldWidth
+	p.Width = fieldWidth
+	c.Width = fieldWidth
 
 	return RegisterModel{
 		Username: u,
@@ -50,6 +55,15 @@ func (m RegisterModel) Init() tea.Cmd {
 
 func (m *RegisterModel) SetTheme(t theme.Theme) {
 	m.Theme = t
+}
+
+func (m *RegisterModel) SetSize(width int) {
+	m.Width = width
+	fieldWidth := fitInputWidth(width, 40)
+	m.Username.Width = fieldWidth
+	m.Email.Width = fieldWidth
+	m.Password.Width = fieldWidth
+	m.Confirm.Width = fieldWidth
 }
 
 func (m RegisterModel) Update(msg tea.Msg) (RegisterModel, tea.Cmd) {
@@ -92,22 +106,20 @@ func (m RegisterModel) Update(msg tea.Msg) (RegisterModel, tea.Cmd) {
 }
 
 func (m RegisterModel) View() string {
-	var s string
-
-	s += m.Theme.AccentText.Bold(true).Render("Register a New Ditto Account") + "\n\n"
-	s += m.Username.View() + "\n"
-	s += m.Email.View() + "\n"
-	s += m.Password.View() + "\n"
-	s += m.Confirm.View() + "\n\n"
-
-	submitBtn := m.Theme.RenderPrimaryButton("[ Register ]", m.Focused == 4)
-	cancelBtn := m.Theme.RenderSecondaryButton("[ Cancel ]", m.Focused == 5)
-
-	s += submitBtn + "  " + cancelBtn + "\n"
-
-	if m.Error != "" {
-		s += "\n" + m.Theme.Error.Render(m.Error)
+	sections := []formSection{
+		{Label: "Username", Content: m.Username.View()},
+		{Label: "Email", Content: m.Email.View()},
+		{Label: "Password", Content: m.Password.View()},
+		{Label: "Confirm Password", Content: m.Confirm.View()},
 	}
 
-	return lipgloss.NewStyle().Padding(1, 2).Render(s)
+	submitBtn := m.Theme.RenderPrimaryButton("[ Create Account ]", m.Focused == 4)
+	cancelBtn := m.Theme.RenderSecondaryButton("[ Cancel ]", m.Focused == 5)
+	feedback := ""
+
+	if m.Error != "" {
+		feedback = renderFormFeedback(m.Theme, "error", "Registration failed", m.Error)
+	}
+
+	return renderFormShell(m.Theme, m.Width, "Create your Ditto account", "Set up a new account to start posting and exploring communities.", sections, []string{submitBtn, cancelBtn}, feedback)
 }

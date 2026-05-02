@@ -3,7 +3,6 @@ package views
 import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
@@ -11,12 +10,14 @@ type SettingsModel struct {
 	Avatar  textinput.Model
 	Focused int // 0: Avatar, 1: Save
 	Theme   theme.Theme
+	Width   int
 }
 
 func NewSettingsModel() SettingsModel {
 	a := textinput.New()
 	a.Placeholder = "Avatar URL"
 	a.Focus()
+	a.Width = fitInputWidth(0, 40)
 
 	return SettingsModel{
 		Avatar:  a,
@@ -30,6 +31,11 @@ func (m SettingsModel) Init() tea.Cmd {
 
 func (m *SettingsModel) SetTheme(t theme.Theme) {
 	m.Theme = t
+}
+
+func (m *SettingsModel) SetSize(width int) {
+	m.Width = width
+	m.Avatar.Width = fitInputWidth(width, 40)
 }
 
 func (m SettingsModel) Update(msg tea.Msg) (SettingsModel, tea.Cmd) {
@@ -54,15 +60,8 @@ func (m SettingsModel) Update(msg tea.Msg) (SettingsModel, tea.Cmd) {
 }
 
 func (m SettingsModel) View() string {
-	var s string
-	s += m.Theme.AccentText.Bold(true).Render("Profile Settings") + "\n\n"
-
-	s += m.Theme.Text.Render("Avatar URL:") + "\n" + m.Avatar.View() + "\n\n"
-
 	submitBtn := m.Theme.RenderPrimaryButton("[ Save ]", m.Focused == 1)
-	s += submitBtn + "\n"
-
-	s += "\n\n" + m.Theme.TextSubtle.Render("Tip: Use :delete-account to permanently delete your account.")
-
-	return lipgloss.NewStyle().Padding(1, 2).Render(s)
+	sections := []formSection{{Label: "Avatar URL", Content: m.Avatar.View()}}
+	feedback := renderFormFeedback(m.Theme, "error", "Danger zone", "Use :delete-account to permanently remove your account.")
+	return renderFormShell(m.Theme, m.Width, "Profile settings", "Update the account details that the TUI can edit today.", sections, []string{submitBtn}, feedback)
 }
