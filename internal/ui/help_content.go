@@ -37,9 +37,9 @@ func (m MainModel) localFooterActions() []string {
 			return []string{"type reply", "enter submit", "esc cancel"}
 		}
 		if m.PostDetailModel.SelectedIdx >= 0 {
-			return []string{"j/k comments", "r reply", "p profile", "s share", "R report"}
+			return []string{"j/k comments", "enter reply", "r reply", "p profile", "R report"}
 		}
-		return []string{"j/k comments", "r reply", "p author", "s share", "L load more"}
+		return []string{"j/k comments", "c comment", "r reply", "p author", "L load more"}
 	case StateCreatePost:
 		return []string{"tab next field", "shift+tab prev", "enter submit", "esc cancel"}
 	case StateEditPost, StateEditCommunity, StateProfileSettings, StateRegister, StateLogin:
@@ -79,7 +79,7 @@ Welcome to Ditto. This guide sticks to what the TUI actually does right now.
 ## Contextual actions by screen 🧭
 - **Feed**: vote with **%s / %s**, create a post with **%s**, refresh with **%s**, search with **s**.
 - **Communities**: open the selected community with **Enter**, discover joined communities with **:joined**, discover random communities with **:random**.
-- **Post detail**: reply with **r**, inspect an author with **p**, share with **s**, report with **R**, and load more comments with **L**.
+- **Post detail**: reply to the post with **c**, reply to the current selection with **r**, use **Enter** to reply to a selected comment, inspect an author with **p**, share with **s**, report with **R**, and load more comments with **L**.
 - **Forms** (login, register, compose, edit, settings): move with **Tab / Shift+Tab**, submit with **Enter**, cancel with **esc**.
 - **Confirm dialogs**: confirm with **Enter**, cancel with **q** or **esc**.
 

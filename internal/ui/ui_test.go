@@ -131,6 +131,14 @@ func TestMainModel_RenderFooterHelp(t *testing.T) {
 			contains: []string{"type reply", "enter submit", "esc cancel"},
 		},
 		{
+			name:  "post detail shows new reply shortcuts",
+			state: StatePostDetail,
+			setup: func(m *MainModel) {
+				m.PostDetailModel.SelectedIdx = 0
+			},
+			contains: []string{"enter reply", "r reply", "p profile"},
+		},
+		{
 			name:     "help footer shows manual navigation",
 			state:    StateHelp,
 			contains: []string{"j/k scroll", "q close manual"},
@@ -169,6 +177,8 @@ func TestMainModel_HelpManualContent(t *testing.T) {
 		"Open the selected post or community",
 		":joined**: List communities you joined.",
 		fmt.Sprintf("**%s**: Open the command palette.", cfg.Keys.Palette),
+		"reply to the post with **c**",
+		"**Enter** to reply to a selected comment",
 	} {
 		if !strings.Contains(content, want) {
 			t.Fatalf("help content %q missing %q", content, want)
@@ -285,6 +295,36 @@ func TestMainModel_Update_CommandPalette(t *testing.T) {
 
 	if updatedModel.State != StateCommunities {
 		t.Errorf("Expected state to return to StateCommunities, got %v", updatedModel.State)
+	}
+}
+
+func TestMainModel_Update_PostDetailReplyShortcuts(t *testing.T) {
+	cfg := config.DefaultConfig()
+	m := NewMainModel(cfg)
+	m.State = StatePostDetail
+	m.PostDetailModel.SetContent(
+		types.Post{ID: "post-1", Title: "Test post", Author: types.UserMin{Username: "author"}},
+		[]types.Comment{{ID: "comment-1", Content: "hello", Author: types.UserMin{Username: "replyguy"}}},
+	)
+
+	newModel, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("c")})
+	updatedModel := newModel.(MainModel)
+	if !updatedModel.PostDetailModel.ShowCommentInput {
+		t.Fatal("expected c to open reply input for the post")
+	}
+	if got := updatedModel.PostDetailModel.CommentInput.Placeholder; got != "Write a comment..." {
+		t.Fatalf("expected top-level placeholder, got %q", got)
+	}
+
+	updatedModel.PostDetailModel.SetShowCommentInput(false)
+	updatedModel.PostDetailModel.SelectedIdx = 0
+	newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updatedModel = newModel.(MainModel)
+	if !updatedModel.PostDetailModel.ShowCommentInput {
+		t.Fatal("expected enter to open reply input for the selected comment")
+	}
+	if got := updatedModel.PostDetailModel.CommentInput.Placeholder; got != "Replying to u/replyguy..." {
+		t.Fatalf("expected comment reply placeholder, got %q", got)
 	}
 }
 

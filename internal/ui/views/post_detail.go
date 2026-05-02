@@ -76,6 +76,14 @@ func (m PostDetailModel) Update(msg tea.Msg) (PostDetailModel, tea.Cmd) {
 				m.SelectedIdx--
 				m.render()
 			}
+		case "c":
+			m.PrepareReplyInput(false)
+			return m, nil
+		case "enter":
+			if m.SelectedIdx >= 0 {
+				m.PrepareReplyInput(true)
+				return m, nil
+			}
 		}
 	}
 
@@ -93,10 +101,10 @@ func (m PostDetailModel) View() string {
 	var actionMenu string
 	if !m.ShowCommentInput {
 		if m.SelectedIdx == -1 {
-			actionMenu = m.Theme.TextSubtle.Render("Actions: (r)eply • (p)rofile • (s)hare • (R)eport • (L)oad more")
+			actionMenu = m.Theme.TextSubtle.Render("Actions: (c)omment • (r)eply • (p)rofile • (s)hare • (R)eport • (L)oad more")
 		} else {
 			author := m.FlattenedComments[m.SelectedIdx].Author.Username
-			actionMenu = m.Theme.AccentText.Bold(true).Render(fmt.Sprintf("Comment by u/%s: (r)eply • (p)rofile • (s)hare • (R)eport", author))
+			actionMenu = m.Theme.AccentText.Bold(true).Render(fmt.Sprintf("Comment by u/%s: (enter) reply • (r)eply • (p)rofile • (s)hare • (R)eport", author))
 		}
 	}
 
@@ -154,6 +162,16 @@ func (m *PostDetailModel) SetShowCommentInput(show bool) {
 		m.CommentInput.Blur()
 	}
 	m.SetSize(m.Width, m.Height)
+}
+
+func (m *PostDetailModel) PrepareReplyInput(replyToSelectedComment bool) {
+	if replyToSelectedComment && m.SelectedIdx >= 0 && m.SelectedIdx < len(m.FlattenedComments) {
+		author := m.FlattenedComments[m.SelectedIdx].Author.Username
+		m.CommentInput.Placeholder = "Replying to u/" + author + "..."
+	} else {
+		m.CommentInput.Placeholder = "Write a comment..."
+	}
+	m.SetShowCommentInput(true)
 }
 
 func (m *PostDetailModel) SetSize(width, height int) {

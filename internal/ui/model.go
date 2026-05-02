@@ -525,13 +525,7 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		case msg.String() == "r":
 			if m.State == StatePostDetail && !m.PostDetailModel.ShowCommentInput {
-				if m.PostDetailModel.SelectedIdx >= 0 && m.PostDetailModel.SelectedIdx < len(m.PostDetailModel.FlattenedComments) {
-					author := m.PostDetailModel.FlattenedComments[m.PostDetailModel.SelectedIdx].Author.Username
-					m.PostDetailModel.CommentInput.Placeholder = "Replying to u/" + author + "..."
-				} else {
-					m.PostDetailModel.CommentInput.Placeholder = "Write a comment..."
-				}
-				m.PostDetailModel.SetShowCommentInput(true)
+				m.PostDetailModel.PrepareReplyInput(m.PostDetailModel.SelectedIdx >= 0)
 				return m, nil
 			}
 		case msg.String() == "p":
