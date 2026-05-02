@@ -7,7 +7,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/rfcku/ditto-cli/internal/types"
 	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
@@ -58,31 +57,17 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	cardStyle := d.Theme.Post.
 		Width(max(20, m.Width()-6))
 
-	header := d.Theme.TextSubtle.Render(
-		fmt.Sprintf("u/%s in c/%s • %s", i.Author.Username, i.Community.Name, RelativeTime(i.CreatedAt)),
+	content := renderVerticalCard(
+		cardStyle,
+		isSelected,
+		d.Theme,
+		fmt.Sprintf("c/%s • u/%s • %s", i.Community.Name, i.Author.Username, RelativeTime(i.CreatedAt)),
+		i.Title(),
+		clampLine(i.Content, max(24, m.Width()-14)),
+		fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d", i.Scores.VoteScore, i.Scores.CommentCount, i.Scores.AwardCount),
 	)
 
-	titleStyle := d.Theme.Text.Bold(true)
-	if isSelected {
-		titleStyle = d.Theme.AccentText.Bold(true)
-	}
-	title := titleStyle.Render(i.Title())
-
-	stats := d.Theme.TextSubtle.Render(
-		fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d",
-			i.Scores.VoteScore,
-			i.Scores.CommentCount,
-			i.Scores.AwardCount),
-	)
-
-	content := lipgloss.JoinVertical(lipgloss.Left,
-		header,
-		title,
-		"",
-		stats,
-	)
-
-	_, _ = fmt.Fprint(w, withSelectionIndicator(cardStyle.Render(content), isSelected, d.Theme))
+	_, _ = fmt.Fprint(w, content)
 }
 
 type FeedModel struct {
