@@ -141,7 +141,7 @@ func TestMainModel_RenderFooterHelp(t *testing.T) {
 		{
 			name:     "help footer shows manual navigation",
 			state:    StateHelp,
-			contains: []string{"j/k scroll", "q close manual"},
+			contains: []string{"j/k/gg/G scroll", "q close manual"},
 		},
 		{
 			name:     "confirm footer shows confirm controls",

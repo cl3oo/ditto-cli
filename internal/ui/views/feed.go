@@ -63,9 +63,10 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 }
 
 type FeedModel struct {
-	List   list.Model
-	Loaded bool
-	Theme  theme.Theme
+	List     list.Model
+	Loaded   bool
+	Theme    theme.Theme
+	pendingG bool
 }
 
 func NewFeedModel() FeedModel {
@@ -89,6 +90,51 @@ func (m FeedModel) Init() tea.Cmd {
 
 func (m FeedModel) Update(msg tea.Msg) (FeedModel, tea.Cmd) {
 	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "g":
+			if m.pendingG {
+				m.List.Select(0)
+				m.pendingG = false
+				return m, nil
+			}
+			m.pendingG = true
+			return m, nil
+		case "G":
+			m.List.Select(len(m.List.Items()) - 1)
+			m.pendingG = false
+			return m, nil
+		case "H":
+			// Jump to top of visible area
+			m.List.Select(m.List.Paginator.Page * m.List.Paginator.PerPage)
+			m.pendingG = false
+			return m, nil
+		case "L":
+			// Jump to bottom of visible area
+			last := (m.List.Paginator.Page+1)*m.List.Paginator.PerPage - 1
+			if last >= len(m.List.Items()) {
+				last = len(m.List.Items()) - 1
+			}
+			m.List.Select(last)
+			m.pendingG = false
+			return m, nil
+		case "M":
+			// Jump to middle of visible area
+			start := m.List.Paginator.Page * m.List.Paginator.PerPage
+			last := (m.List.Paginator.Page+1)*m.List.Paginator.PerPage - 1
+			if last >= len(m.List.Items()) {
+				last = len(m.List.Items()) - 1
+			}
+			m.List.Select(start + (last-start)/2)
+			m.pendingG = false
+			return m, nil
+		default:
+			m.pendingG = false
+		}
+	}
+
 	m.List, cmd = m.List.Update(msg)
 	return m, cmd
 }

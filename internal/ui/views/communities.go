@@ -57,9 +57,10 @@ func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem
 }
 
 type CommunityModel struct {
-	List   list.Model
-	Loaded bool
-	Theme  theme.Theme
+	List     list.Model
+	Loaded   bool
+	Theme    theme.Theme
+	pendingG bool
 }
 
 func NewCommunityModel() CommunityModel {
@@ -83,6 +84,48 @@ func (m CommunityModel) Init() tea.Cmd {
 
 func (m CommunityModel) Update(msg tea.Msg) (CommunityModel, tea.Cmd) {
 	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "g":
+			if m.pendingG {
+				m.List.Select(0)
+				m.pendingG = false
+				return m, nil
+			}
+			m.pendingG = true
+			return m, nil
+		case "G":
+			m.List.Select(len(m.List.Items()) - 1)
+			m.pendingG = false
+			return m, nil
+		case "H":
+			m.List.Select(m.List.Paginator.Page * m.List.Paginator.PerPage)
+			m.pendingG = false
+			return m, nil
+		case "L":
+			last := (m.List.Paginator.Page+1)*m.List.Paginator.PerPage - 1
+			if last >= len(m.List.Items()) {
+				last = len(m.List.Items()) - 1
+			}
+			m.List.Select(last)
+			m.pendingG = false
+			return m, nil
+		case "M":
+			start := m.List.Paginator.Page * m.List.Paginator.PerPage
+			last := (m.List.Paginator.Page+1)*m.List.Paginator.PerPage - 1
+			if last >= len(m.List.Items()) {
+				last = len(m.List.Items()) - 1
+			}
+			m.List.Select(start + (last-start)/2)
+			m.pendingG = false
+			return m, nil
+		default:
+			m.pendingG = false
+		}
+	}
+
 	m.List, cmd = m.List.Update(msg)
 	return m, cmd
 }

@@ -18,7 +18,7 @@ func (m MainModel) localFooterActions() []string {
 	switch m.State {
 	case StateFeed:
 		return []string{
-			"j/k move",
+			"j/k/gg/G move",
 			fmt.Sprintf("%s/%s vote", m.Config.Keys.Upvote, m.Config.Keys.Downvote),
 			fmt.Sprintf("%s new post", m.Config.Keys.New),
 			fmt.Sprintf("%s refresh", m.Config.Keys.Refresh),
@@ -26,7 +26,7 @@ func (m MainModel) localFooterActions() []string {
 		}
 	case StateCommunities:
 		return []string{
-			"j/k move",
+			"j/k/gg/G move",
 			"enter open",
 			fmt.Sprintf("%s new post", m.Config.Keys.New),
 			":joined joined",
@@ -37,15 +37,15 @@ func (m MainModel) localFooterActions() []string {
 			return []string{"type reply", "enter submit", "esc cancel"}
 		}
 		if m.PostDetailModel.SelectedIdx >= 0 {
-			return []string{"j/k comments", "enter reply", "r reply", "p profile", "R report"}
+			return []string{"j/k/gg/G comments", "enter reply", "r reply", "p profile", "R report"}
 		}
-		return []string{"j/k comments", "c comment", "r reply", "p author", "L load more"}
+		return []string{"j/k/gg/G comments", "c comment", "r reply", "p author", "L load more"}
 	case StateCreatePost:
 		return []string{"tab next field", "shift+tab prev", "enter submit", "esc cancel"}
 	case StateEditPost, StateEditCommunity, StateProfileSettings, StateRegister, StateLogin:
 		return []string{"tab next field", "shift+tab prev", "enter submit", "esc cancel"}
 	case StateHelp:
-		return []string{"j/k scroll", "q close manual"}
+		return []string{"j/k/gg/G scroll", "q close manual"}
 	case StateSelection:
 		return []string{"p post", "c community", "esc cancel"}
 	case StateLoading:
@@ -71,6 +71,8 @@ Welcome to Ditto. This guide sticks to what the TUI actually does right now.
 
 ## Navigation 🕹️
 - **j / k** or **Up / Down**: Move through lists and comments.
+- **gg / G**: Jump to the top / bottom of lists.
+- **H / M / L**: Jump to the high / middle / low visible area.
 - **Enter**: Open the selected post or community, or submit the focused form.
 - **q**: Go back to the previous screen.
 - **esc**: Cancel command mode, dialogs, or inline reply/edit flows.
