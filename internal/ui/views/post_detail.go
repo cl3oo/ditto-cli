@@ -31,7 +31,9 @@ type PostDetailModel struct {
 
 type commentWithDepth struct {
 	types.Comment
-	Depth int
+	Depth        int
+	AncestorLast []bool
+	IsLast       bool
 }
 
 func NewPostDetailModel() PostDetailModel {
@@ -129,8 +131,7 @@ func (m PostDetailModel) View() string {
 func (m *PostDetailModel) SetContent(post types.Post, comments []types.Comment) {
 	m.Post = post
 	m.Comments = comments
-	m.FlattenedComments = []commentWithDepth{}
-	m.flattenComments(comments, 0)
+	m.rebuildFlattenedComments()
 	m.Ready = true
 	m.SelectedIdx = -1
 	m.Page = 1
@@ -138,16 +139,28 @@ func (m *PostDetailModel) SetContent(post types.Post, comments []types.Comment) 
 }
 
 func (m *PostDetailModel) AppendComments(comments []types.Comment) {
-	m.Comments = append(m.Comments, comments...)
-	m.flattenComments(comments, 0)
+	m.Comments = mergeCommentForest(m.Comments, comments)
+	m.rebuildFlattenedComments()
 	m.Page++
 	m.render()
 }
 
-func (m *PostDetailModel) flattenComments(comments []types.Comment, depth int) {
-	for _, c := range comments {
-		m.FlattenedComments = append(m.FlattenedComments, commentWithDepth{Comment: c, Depth: depth})
-		m.flattenComments(c.Children, depth+1)
+func (m *PostDetailModel) rebuildFlattenedComments() {
+	m.FlattenedComments = m.FlattenedComments[:0]
+	m.flattenComments(m.Comments, 0, nil)
+}
+
+func (m *PostDetailModel) flattenComments(comments []types.Comment, depth int, ancestorLast []bool) {
+	for i, c := range comments {
+		isLast := i == len(comments)-1
+		prefix := append([]bool(nil), ancestorLast...)
+		m.FlattenedComments = append(m.FlattenedComments, commentWithDepth{
+			Comment:      c,
+			Depth:        depth,
+			AncestorLast: prefix,
+			IsLast:       isLast,
+		})
+		m.flattenComments(c.Children, depth+1, append(prefix, isLast))
 	}
 }
 
@@ -229,28 +242,125 @@ func (m *PostDetailModel) render() {
 }
 
 func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) string {
-	indent := strings.Repeat("│ ", c.Depth)
-	if c.Depth > 0 {
-		indent = strings.Repeat("│ ", c.Depth-1) + "├─"
-	}
-
 	var s strings.Builder
 	authorStyle := m.Theme.Text.Bold(true)
 	scoreStyle := m.Theme.TextSubtle
-	contentStyle := lipgloss.NewStyle().PaddingLeft(c.Depth*2 + 2)
 
 	if selected {
 		authorStyle = m.Theme.AccentText.Bold(true)
 	}
 
+	headerPrefix, contentPrefix := commentTreePrefixes(c)
+
 	_, _ = fmt.Fprintf(&s, "%s %s • %s • %s\n",
-		indent,
+		headerPrefix,
 		authorStyle.Render("u/"+c.Author.Username),
 		scoreStyle.Render(fmt.Sprintf("↑↓ %d", c.Scores.VoteScore)),
 		scoreStyle.Render(RelativeTime(c.CreatedAt)))
 
-	// Wrap comment content
-	s.WriteString(contentStyle.Render(c.Content))
+	contentWidth := max(12, m.Width-lipgloss.Width(contentPrefix)-4)
+	wrapped := wrapCommentContent(c.Content, contentWidth)
+	for i, line := range wrapped {
+		if i > 0 {
+			s.WriteByte('\n')
+		}
+		s.WriteString(contentPrefix)
+		s.WriteString(line)
+	}
 
 	return withSelectionIndicator(s.String(), selected, m.Theme) + "\n\n"
+}
+
+func commentTreePrefixes(c commentWithDepth) (string, string) {
+	if c.Depth == 0 {
+		return "•", "  "
+	}
+
+	var shared strings.Builder
+	for _, ancestorIsLast := range c.AncestorLast[:len(c.AncestorLast)-1] {
+		if ancestorIsLast {
+			shared.WriteString("  ")
+		} else {
+			shared.WriteString("│ ")
+		}
+	}
+
+	branch := "├─"
+	stem := "│ "
+	if c.IsLast {
+		branch = "└─"
+		stem = "  "
+	}
+
+	return shared.String() + branch, shared.String() + stem
+}
+
+func wrapCommentContent(content string, width int) []string {
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return []string{""}
+	}
+
+	paragraphs := strings.Split(content, "\n")
+	lines := make([]string, 0, len(paragraphs))
+	for _, paragraph := range paragraphs {
+		paragraph = strings.TrimSpace(paragraph)
+		if paragraph == "" {
+			if len(lines) == 0 || lines[len(lines)-1] != "" {
+				lines = append(lines, "")
+			}
+			continue
+		}
+
+		words := strings.Fields(paragraph)
+		line := words[0]
+		for _, word := range words[1:] {
+			candidate := line + " " + word
+			if lipgloss.Width(candidate) <= width {
+				line = candidate
+				continue
+			}
+			lines = append(lines, line)
+			line = word
+		}
+		lines = append(lines, line)
+	}
+
+	if len(lines) == 0 {
+		return []string{""}
+	}
+
+	return lines
+}
+
+func mergeCommentForest(existing, incoming []types.Comment) []types.Comment {
+	merged := append([]types.Comment(nil), existing...)
+	indexByID := make(map[string]int, len(merged))
+	for i, comment := range merged {
+		indexByID[comment.ID] = i
+	}
+
+	for _, comment := range incoming {
+		if idx, ok := indexByID[comment.ID]; ok {
+			merged[idx] = mergeCommentNode(merged[idx], comment)
+			continue
+		}
+		indexByID[comment.ID] = len(merged)
+		merged = append(merged, comment)
+	}
+
+	return merged
+}
+
+func mergeCommentNode(existing, incoming types.Comment) types.Comment {
+	merged := existing
+	merged.Content = incoming.Content
+	merged.AuthorID = incoming.AuthorID
+	merged.Author = incoming.Author
+	merged.Scores = incoming.Scores
+	merged.Voted = incoming.Voted
+	merged.VoteDirection = incoming.VoteDirection
+	merged.CreatedAt = incoming.CreatedAt
+	merged.Children = mergeCommentForest(existing.Children, incoming.Children)
+	return merged
 }
