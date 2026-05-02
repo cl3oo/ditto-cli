@@ -97,7 +97,7 @@ func (m PostDetailModel) Update(msg tea.Msg) (PostDetailModel, tea.Cmd) {
 
 func (m PostDetailModel) View() string {
 	if !m.Ready {
-		return "  Loading post..."
+		return RenderCenteredStateSurface(m.Theme, m.Width, m.Height, "loading", "Loading post", "Fetching the thread and replies.", nil)
 	}
 
 	var actionMenu string

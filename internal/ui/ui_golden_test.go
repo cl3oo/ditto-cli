@@ -43,6 +43,16 @@ func TestGoldenMainViewCommunitiesEmpty(t *testing.T) {
 	assertGolden(t, "main_communities_empty.golden", m.View())
 }
 
+func TestGoldenMainViewLoading(t *testing.T) {
+	cfg := config.DefaultConfig()
+	m := NewMainModel(cfg)
+	m.Width = 90
+	m.Height = 26
+	m.State = StateLoading
+
+	assertGolden(t, "main_loading.golden", m.View())
+}
+
 func TestGoldenFeedSelectionIndicator(t *testing.T) {
 	m := newGoldenMainModel(82, 24, "")
 	m.State = StateFeed
@@ -172,6 +182,17 @@ func TestGoldenRegisterViewWithError(t *testing.T) {
 	m.Error = "passwords do not match"
 
 	assertGolden(t, "register_error.golden", m.View())
+}
+
+func TestGoldenLoginViewSuccess(t *testing.T) {
+	main := newGoldenMainModel(0, 0, "")
+	m := views.NewLoginModel()
+	m.SetTheme(main.Theme)
+	m.LoggedIn = true
+	m.SuccessToken = "deadbeefcafebabe"
+	m.Focused = 2
+
+	assertGolden(t, "login_success.golden", m.View())
 }
 
 func TestGoldenHelpViewNarrow(t *testing.T) {

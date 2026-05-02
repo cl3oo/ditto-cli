@@ -34,7 +34,7 @@ func (m HelpModel) Update(msg tea.Msg) (HelpModel, tea.Cmd) {
 
 func (m HelpModel) View() string {
 	if !m.Ready {
-		return "  Loading manual..."
+		return RenderCenteredStateSurface(m.Theme, m.Width, m.Height, "loading", "Loading manual", "Pulling the Ditto CLI guide into view.", nil)
 	}
 	return m.Viewport.View()
 }
