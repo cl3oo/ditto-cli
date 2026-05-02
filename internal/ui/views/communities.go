@@ -6,7 +6,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/rfcku/ditto-cli/internal/types"
 	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
@@ -42,54 +41,28 @@ func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem
 	cardStyle := d.Theme.Post.
 		Width(max(20, m.Width()-6))
 
-	var header, title, stats string
+	var meta, title, body, stats string
 
 	if i, ok := listItem.(CommunityItem); ok {
-		header = d.Theme.TextSubtle.Render(
-			fmt.Sprintf("Community • Created %s", RelativeTime(i.CreatedAt)),
-		)
-		titleStyle := d.Theme.Text.Bold(true)
-		if isSelected {
-			titleStyle = d.Theme.AccentText.Bold(true)
-		}
-		title = titleStyle.Render(i.Title() + ": " + i.Community.Title)
-		stats = d.Theme.TextSubtle.Render(
-			fmt.Sprintf("👥 %d members • 📝 %d posts", i.Scores.SubCount, i.Scores.PostCount),
-		)
+		meta = fmt.Sprintf("c/%s • created %s", i.Name, RelativeTime(i.CreatedAt))
+		title = i.Community.Title
+		body = clampLine(i.Community.Description, max(24, m.Width()-14))
+		stats = fmt.Sprintf("👥 %d members • 📝 %d posts", i.Scores.SubCount, i.Scores.PostCount)
 	} else if i, ok := listItem.(UserItem); ok {
-		header = d.Theme.TextSubtle.Render(
-			fmt.Sprintf("User • Joined %s", RelativeTime(i.CreatedAt)),
-		)
-		titleStyle := d.Theme.Text.Bold(true)
-		if isSelected {
-			titleStyle = d.Theme.AccentText.Bold(true)
-		}
-		title = titleStyle.Render(i.Title())
-		stats = d.Theme.TextSubtle.Render(i.Description())
+		meta = fmt.Sprintf("u/%s • joined %s", i.Username, RelativeTime(i.CreatedAt))
+		title = i.Title()
+		body = "Ditto user"
+		stats = i.Description()
 	} else if i, ok := listItem.(PostItem); ok {
-		header = d.Theme.TextSubtle.Render(
-			fmt.Sprintf("u/%s in c/%s • %s", i.Author.Username, i.Community.Name, RelativeTime(i.CreatedAt)),
-		)
-		titleStyle := d.Theme.Text.Bold(true)
-		if isSelected {
-			titleStyle = d.Theme.AccentText.Bold(true)
-		}
-		title = titleStyle.Render(i.Title())
-		stats = d.Theme.TextSubtle.Render(
-			fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d", i.Scores.VoteScore, i.Scores.CommentCount, i.Scores.AwardCount),
-		)
+		meta = fmt.Sprintf("c/%s • u/%s • %s", i.Community.Name, i.Author.Username, RelativeTime(i.CreatedAt))
+		title = i.Title()
+		body = clampLine(i.Content, max(24, m.Width()-14))
+		stats = fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d", i.Scores.VoteScore, i.Scores.CommentCount, i.Scores.AwardCount)
 	} else {
 		return
 	}
 
-	content := lipgloss.JoinVertical(lipgloss.Left,
-		header,
-		title,
-		"",
-		stats,
-	)
-
-	_, _ = fmt.Fprint(w, withSelectionIndicator(cardStyle.Render(content), isSelected, d.Theme))
+	_, _ = fmt.Fprint(w, renderVerticalCard(cardStyle, isSelected, d.Theme, meta, title, body, stats))
 }
 
 type CommunityModel struct {

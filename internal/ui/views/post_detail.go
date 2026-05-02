@@ -188,25 +188,19 @@ func (m *PostDetailModel) SetSize(width, height int) {
 func (m *PostDetailModel) render() {
 	var s strings.Builder
 
-	// Render Post Header
-	headerStyle := m.Theme.Text.Bold(true)
-	if m.SelectedIdx == -1 {
-		headerStyle = m.Theme.AccentText.Bold(true)
-	}
-
-	headerText := fmt.Sprintf("%s (p/%s)", m.Post.Title, m.Post.ID)
+	headerText := m.Post.Title
 	if m.Post.Locked {
-		headerText += " [LOCKED]"
+		headerText += " [locked]"
 	}
-	s.WriteString(withSelectionIndicator(headerStyle.Render(headerText), m.SelectedIdx == -1, m.Theme) + "\n")
-
-	s.WriteString(m.Theme.TextSubtle.Render(fmt.Sprintf("u/%s (u/%s) in c/%s (c/%s) • ↑↓ %d • 💬 %d • 💎 %d • %s",
-		m.Post.Author.Username, m.Post.Author.ID,
-		m.Post.Community.Name, m.Post.Community.ID,
-		m.Post.Scores.VoteScore,
-		m.Post.Scores.CommentCount,
-		m.Post.Scores.AwardCount,
-		RelativeTime(m.Post.CreatedAt))) + "\n\n")
+	s.WriteString(renderVerticalCard(
+		lipgloss.NewStyle(),
+		m.SelectedIdx == -1,
+		m.Theme,
+		fmt.Sprintf("c/%s • u/%s • %s • p/%s", m.Post.Community.Name, m.Post.Author.Username, RelativeTime(m.Post.CreatedAt), m.Post.ID),
+		headerText,
+		"",
+		fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d", m.Post.Scores.VoteScore, m.Post.Scores.CommentCount, m.Post.Scores.AwardCount),
+	) + "\n\n")
 
 	// Render Post Content with Glamour
 	var renderer *glamour.TermRenderer
