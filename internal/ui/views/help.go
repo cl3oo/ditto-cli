@@ -14,6 +14,7 @@ type HelpModel struct {
 	Height   int
 	Theme    theme.Theme
 	Content  string
+	pendingG bool
 }
 
 func NewHelpModel() HelpModel {
@@ -28,6 +29,27 @@ func (m HelpModel) Init() tea.Cmd {
 
 func (m HelpModel) Update(msg tea.Msg) (HelpModel, tea.Cmd) {
 	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "g":
+			if m.pendingG {
+				m.Viewport.GotoTop()
+				m.pendingG = false
+				return m, nil
+			}
+			m.pendingG = true
+			return m, nil
+		case "G":
+			m.Viewport.GotoBottom()
+			m.pendingG = false
+			return m, nil
+		default:
+			m.pendingG = false
+		}
+	}
+
 	m.Viewport, cmd = m.Viewport.Update(msg)
 	return m, cmd
 }

@@ -14,5 +14,5 @@
 
   • **j / k** or **Up / Down**: Move through lists and
   comments.
-  • **Enter**: Open the selected post or community, or
-  submit the focused form.
+  • **gg / G**: Jump to the top / bottom of lists.
+  • **H / M / L**: Jump to the high / middle / low

@@ -141,6 +141,13 @@ To implement the missing API endpoints into the Ditto CLI, prioritizing core use
 
 ---
 
+## Phase 5: UI/UX Refinements
+
+### Navigation & Accessibility
+- [x] **Vim-style navigation**
+  - **TUI**: Implemented `gg` (top), `G` (bottom), `H` (high), `M` (middle), `L` (low) navigation in Feed, Communities, and Post Detail views.
+  - **TUI**: Added `gg` and `G` support to the Help manual.
+
 ## Completed Base Functionality
 - [x] Authorize a user (`POST /auth/authorize`)
 - [x] Register a user (`POST /auth/register`)

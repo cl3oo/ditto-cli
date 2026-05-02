@@ -27,6 +27,7 @@ type PostDetailModel struct {
 	Width            int
 	Height           int
 	Theme            theme.Theme
+	pendingG         bool
 }
 
 type commentWithDepth struct {
@@ -73,19 +74,53 @@ func (m PostDetailModel) Update(msg tea.Msg) (PostDetailModel, tea.Cmd) {
 				m.SelectedIdx++
 				m.render()
 			}
+			m.pendingG = false
 		case "k":
 			if m.SelectedIdx > -1 {
 				m.SelectedIdx--
 				m.render()
 			}
+			m.pendingG = false
+		case "g":
+			if m.pendingG {
+				m.SelectedIdx = -1
+				m.render()
+				m.pendingG = false
+				return m, nil
+			}
+			m.pendingG = true
+			return m, nil
+		case "G":
+			m.SelectedIdx = len(m.FlattenedComments) - 1
+			m.render()
+			m.pendingG = false
+		case "H":
+			// Jump to top
+			m.SelectedIdx = -1
+			m.render()
+			m.pendingG = false
+		case "L":
+			// Jump to bottom
+			m.SelectedIdx = len(m.FlattenedComments) - 1
+			m.render()
+			m.pendingG = false
+		case "M":
+			// Jump to middle
+			m.SelectedIdx = (len(m.FlattenedComments) - 1) / 2
+			m.render()
+			m.pendingG = false
 		case "c":
 			m.PrepareReplyInput(false)
+			m.pendingG = false
 			return m, nil
 		case "enter":
 			if m.SelectedIdx >= 0 {
 				m.PrepareReplyInput(true)
+				m.pendingG = false
 				return m, nil
 			}
+		default:
+			m.pendingG = false
 		}
 	}
 
