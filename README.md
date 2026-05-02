@@ -174,6 +174,20 @@ This project uses git hooks to ensure code quality:
 - **Pre-commit**: Runs `make lint`.
 - **Pre-push**: Runs `make test`.
 
+### Updating golden UI snapshots
+
+Visual regression fixtures live under `internal/ui/testdata/` and are exercised by `internal/ui/ui_golden_test.go`.
+
+```bash
+# Verify the existing golden fixtures
+ go test ./internal/ui -run TestGolden
+
+# Re-record fixtures after an intentional UI change
+ go test ./internal/ui -run TestGolden -update
+```
+
+Run `make test` after updating goldens so the regular unit suite and the snapshots agree.
+
 ### Architecture
 
 - `internal/api/`: Handles all HTTP communication with the Ditto backend.

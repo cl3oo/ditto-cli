@@ -43,7 +43,9 @@ func TestGoldenMainViewCommunitiesEmpty(t *testing.T) {
 }
 
 func TestGoldenLoginView(t *testing.T) {
+	main := newGoldenMainModel(0, 0, "")
 	m := views.NewLoginModel()
+	m.SetTheme(main.Theme)
 	m.Username.SetValue("astrocat")
 	m.Password.SetValue("swordfish")
 	m.Focused = 2
@@ -51,6 +53,24 @@ func TestGoldenLoginView(t *testing.T) {
 	m.Password.Blur()
 
 	assertGolden(t, "login_submit_focused.golden", m.View())
+}
+
+func TestGoldenRegisterViewWithError(t *testing.T) {
+	main := newGoldenMainModel(0, 0, "")
+	m := views.NewRegisterModel()
+	m.SetTheme(main.Theme)
+	m.Username.SetValue("astrocat")
+	m.Email.SetValue("astrocat@example.com")
+	m.Password.SetValue("swordfish")
+	m.Confirm.SetValue("swordf1sh")
+	m.Focused = 4
+	m.Username.Blur()
+	m.Email.Blur()
+	m.Password.Blur()
+	m.Confirm.Blur()
+	m.Error = "passwords do not match"
+
+	assertGolden(t, "register_error.golden", m.View())
 }
 
 func TestGoldenHelpViewNarrow(t *testing.T) {
@@ -64,8 +84,7 @@ func TestGoldenHelpViewNarrow(t *testing.T) {
 }
 
 func TestGoldenPostDetailLargeContent(t *testing.T) {
-	cfg := config.DefaultConfig()
-	main := NewMainModel(cfg)
+	main := newGoldenMainModel(0, 0, "")
 	m := views.NewPostDetailModel()
 	m.SetTheme(main.Theme)
 	m.SetSize(72, 22)
@@ -109,6 +128,102 @@ func TestGoldenPostDetailLargeContent(t *testing.T) {
 	m.SetSize(72, 22)
 
 	assertGolden(t, "post_detail_large_content.golden", m.View())
+}
+
+func TestGoldenPostDetailNarrow(t *testing.T) {
+	main := newGoldenMainModel(0, 0, "")
+	m := views.NewPostDetailModel()
+	m.SetTheme(main.Theme)
+	m.SetSize(54, 18)
+
+	now := time.Now()
+	post := types.Post{
+		ID:        "post-7",
+		Title:     "Narrow layout should stay readable when metadata gets crowded",
+		Content:   "A smaller viewport should still keep post detail usable without turning the header into soup.",
+		Author:    types.UserMin{ID: "user-with-a-long-id", Username: "terminalfox"},
+		Community: types.CommunityMin{ID: "community-with-a-long-id", Name: "ditto-design"},
+		Scores:    types.Score{VoteScore: 19, CommentCount: 12, AwardCount: 2},
+		CreatedAt: now.Add(-47 * time.Minute),
+	}
+	comments := []types.Comment{{
+		ID:        "comment-1",
+		Content:   "If this fits in a narrow fixture, it usually survives real terminals too.",
+		Author:    types.UserMin{ID: "u-2", Username: "moss"},
+		Scores:    types.Score{VoteScore: 6},
+		CreatedAt: now.Add(-30 * time.Minute),
+	}}
+
+	m.SetContent(post, comments)
+	m.SetSize(54, 18)
+
+	assertGolden(t, "post_detail_narrow.golden", m.View())
+}
+
+func TestGoldenCommandPalette(t *testing.T) {
+	m := newGoldenMainModel(80, 24, "")
+	m.State = StateCommandPalette
+	m.PaletteModel.SetTheme(m.Theme)
+	m.PaletteModel.SetSize(80, 24)
+
+	assertGolden(t, "command_palette.golden", m.View())
+}
+
+func TestGoldenConfirmDeleteAccount(t *testing.T) {
+	m := newGoldenMainModel(84, 24, "")
+	m.State = StateConfirm
+	m.ConfirmDialog = ConfirmDialog{
+		Action:      ConfirmDeleteAccount,
+		Previous:    StateProfileSettings,
+		Title:       "Delete account forever",
+		Body:        "This permanently removes your account and cannot be undone.",
+		TargetLabel: "u/astrocat",
+		Extra:       "Deletes profile data, wallet access, and authored content associations.",
+		Step:        2,
+		Steps:       2,
+	}
+
+	assertGolden(t, "confirm_delete_account.golden", m.View())
+}
+
+func TestGoldenCreatePostNarrow(t *testing.T) {
+	m := newGoldenMainModel(64, 22, "")
+	m.State = StateCreatePost
+	m.CreatePostModel.Title.SetValue("Patch narrow layout snapshots")
+	m.CreatePostModel.CommunityID.SetValue("ditto")
+	m.CreatePostModel.Content.SetValue("Golden fixtures should catch responsive regressions before users do.")
+	m.CreatePostModel.Focused = 2
+	m.CreatePostModel.Title.Blur()
+	m.CreatePostModel.CommunityID.Blur()
+	m.CreatePostModel.Content.Focus()
+	m.CreatePostModel.SetTheme(m.Theme)
+
+	assertGolden(t, "create_post_narrow.golden", m.View())
+}
+
+func TestGoldenSettingsLightTheme(t *testing.T) {
+	m := newGoldenMainModel(76, 20, "light")
+	m.State = StateProfileSettings
+	m.Client.SetToken("token-123")
+	m.Me = &types.User{Username: "sunny"}
+	m.Wallet = &types.Wallet{Coins: 42, Tokens: 7}
+	m.SettingsModel.Avatar.SetValue("https://cdn.example.com/avatar.png")
+	m.SettingsModel.Focused = 1
+	m.SettingsModel.Avatar.Blur()
+	m.SettingsModel.SetTheme(m.Theme)
+
+	assertGolden(t, "settings_light_theme.golden", m.View())
+}
+
+func newGoldenMainModel(width, height int, themeName string) MainModel {
+	cfg := config.DefaultConfig()
+	if themeName != "" {
+		cfg.Appearance.Theme = themeName
+	}
+	m := NewMainModel(cfg)
+	m.Width = width
+	m.Height = height
+	return m
 }
 
 func assertGolden(t *testing.T, name, got string) {
