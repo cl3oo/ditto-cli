@@ -100,15 +100,8 @@ func (m RegisterModel) View() string {
 	s += m.Password.View() + "\n"
 	s += m.Confirm.View() + "\n\n"
 
-	submitBtn := "[ Register ]"
-	if m.Focused == 4 {
-		submitBtn = m.Theme.Selected.Render("[ Register ]")
-	}
-
-	cancelBtn := "[ Cancel ]"
-	if m.Focused == 5 {
-		cancelBtn = m.Theme.TextSubtle.Render("[ Cancel ]")
-	}
+	submitBtn := m.Theme.RenderPrimaryButton("[ Register ]", m.Focused == 4)
+	cancelBtn := m.Theme.RenderSecondaryButton("[ Cancel ]", m.Focused == 5)
 
 	s += submitBtn + "  " + cancelBtn + "\n"
 

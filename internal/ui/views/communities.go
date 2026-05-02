@@ -43,7 +43,8 @@ func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem
 		Width(max(20, m.Width()-4))
 
 	if isSelected {
-		cardStyle = cardStyle.BorderForeground(d.Theme.Accent)
+		cardStyle = d.Theme.SelectedCard.
+			Width(max(20, m.Width()-4))
 	}
 
 	var header, title, stats string

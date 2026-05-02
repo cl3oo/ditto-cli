@@ -6,7 +6,6 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
@@ -51,7 +50,7 @@ func (d commandDelegate) Render(w io.Writer, m list.Model, index int, listItem l
 		str = d.Theme.Selected.Render("> " + i.TitleText)
 		desc = d.Theme.TextSubtle.Render(i.DescriptionText)
 	} else {
-		str = lipgloss.NewStyle().PaddingLeft(2).Render(i.TitleText)
+		str = d.Theme.FooterItem.PaddingLeft(2).Render(i.TitleText)
 		desc = d.Theme.TextSubtle.PaddingLeft(2).Render(i.DescriptionText)
 	}
 

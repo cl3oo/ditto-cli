@@ -81,19 +81,15 @@ func (m MainModel) View() string {
 	}
 
 	if m.StatusMessage != "" {
-		style := m.Theme.Success
+		style := m.Theme.SuccessBanner
 		if strings.HasPrefix(m.StatusMessage, "Error") {
-			style = m.Theme.Error
+			style = m.Theme.ErrorBanner
 		}
 		s.WriteString("\n " + style.Render(m.StatusMessage))
 	}
 
 	if m.CommandBuffer != "" {
-		s.WriteString("\n" + lipgloss.NewStyle().
-			Foreground(lipgloss.Color("15")).
-			Background(m.Theme.Accent).
-			Padding(0, 1).
-			Render(m.CommandBuffer))
+		s.WriteString("\n" + m.Theme.CommandSurface.Render(m.CommandBuffer))
 	}
 
 	if footer != "" {
@@ -117,20 +113,11 @@ func (m MainModel) renderFooterHelp() string {
 		)
 	}
 
-	titleStyle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("230")).Padding(0, 1)
-	globalStyle := m.Theme.Text.Padding(0, 1)
-	localTitleStyle := lipgloss.NewStyle().Bold(true).Foreground(m.Theme.Accent).Padding(0, 1)
-	localStyle := m.Theme.Text.Bold(true).Padding(0, 1)
-	lineStyle := lipgloss.NewStyle().Background(lipgloss.Color("236")).Width(max(0, m.Width))
-	if lipgloss.HasDarkBackground() {
-		lineStyle = lineStyle.Background(lipgloss.Color("235"))
-	} else {
-		lineStyle = lineStyle.Background(lipgloss.Color("254"))
-	}
+	lineStyle := m.Theme.FooterSurface.Width(max(0, m.Width))
 
 	return lipgloss.JoinVertical(lipgloss.Left,
-		lineStyle.Render(section("Global", global, titleStyle, globalStyle)),
-		lineStyle.Render(section("Here", local, localTitleStyle, localStyle)),
+		lineStyle.Render(section("Global", global, m.Theme.FooterSectionTitle, m.Theme.FooterItem)),
+		lineStyle.Render(section("Here", local, m.Theme.FooterSectionTitleAlt, m.Theme.FooterItemStrong)),
 	)
 }
 
@@ -147,10 +134,8 @@ func (m MainModel) renderEmptyState(title, body string, actions []string) string
 		}
 	}
 
-	box := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
+	box := m.Theme.Surface.
 		BorderForeground(m.Theme.TextSubtle.GetForeground()).
-		Padding(1, 2).
 		Width(min(max(52, m.Width-12), 88))
 
 	return lipgloss.Place(
@@ -238,10 +223,7 @@ func (m MainModel) renderConfirmDialog() string {
 	lines = append(lines, "")
 	lines = append(lines, "Enter to continue, q or esc to cancel.")
 
-	box := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(m.Theme.Error.GetForeground()).
-		Padding(1, 2).
+	box := m.Theme.ModalCritical.
 		Width(min(max(60, m.Width-12), 90))
 
 	return lipgloss.Place(

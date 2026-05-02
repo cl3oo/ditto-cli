@@ -59,7 +59,8 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		Width(max(20, m.Width()-4))
 
 	if isSelected {
-		cardStyle = cardStyle.BorderForeground(d.Theme.Accent)
+		cardStyle = d.Theme.SelectedCard.
+			Width(max(20, m.Width()-4))
 	}
 
 	header := d.Theme.TextSubtle.Render(

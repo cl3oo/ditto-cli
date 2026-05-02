@@ -59,10 +59,7 @@ func (m SettingsModel) View() string {
 
 	s += m.Theme.Text.Render("Avatar URL:") + "\n" + m.Avatar.View() + "\n\n"
 
-	submitBtn := "[ Save ]"
-	if m.Focused == 1 {
-		submitBtn = m.Theme.Selected.Render("[ Save ]")
-	}
+	submitBtn := m.Theme.RenderPrimaryButton("[ Save ]", m.Focused == 1)
 	s += submitBtn + "\n"
 
 	s += "\n\n" + m.Theme.TextSubtle.Render("Tip: Use :delete-account to permanently delete your account.")

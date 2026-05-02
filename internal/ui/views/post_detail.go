@@ -104,7 +104,7 @@ func (m PostDetailModel) View() string {
 
 	var footer string
 	if m.ShowCommentInput {
-		footer = "\n" + lipgloss.NewStyle().
+		footer = "\n" + m.Theme.Surface.
 			Border(lipgloss.NormalBorder(), true, false, false, false).
 			BorderForeground(m.Theme.TextSubtle.GetForeground()).
 			Padding(1, 1).
@@ -230,12 +230,7 @@ func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) st
 
 	if selected {
 		authorStyle = authorStyle.Reverse(true)
-		contentStyle = contentStyle.Background(m.Theme.Accent) // Highlight content area slightly or use reverse
-		if lipgloss.HasDarkBackground() {
-			contentStyle = contentStyle.Background(lipgloss.Color("236"))
-		} else {
-			contentStyle = contentStyle.Background(lipgloss.Color("250"))
-		}
+		contentStyle = m.Theme.SelectedRow.PaddingLeft(c.Depth*2 + 2)
 	}
 
 	_, _ = fmt.Fprintf(&s, "%s %s • %s • %s\n",
