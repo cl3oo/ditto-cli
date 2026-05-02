@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -158,48 +159,143 @@ func (m MainModel) renderSelectionMenu() string {
 }
 
 func (m MainModel) renderHeader() string {
-	bc := " DITTO "
+	crumbs := []string{"DITTO"}
 	switch m.State {
 	case StateFeed:
-		bc += "> FEED "
+		crumbs = append(crumbs, "FEED")
 	case StatePostDetail:
-		bc += fmt.Sprintf("> c/%s > p/%s ", m.PostDetailModel.Post.Community.Name, m.PostDetailModel.Post.Title)
+		crumbs = append(crumbs, "c/"+m.PostDetailModel.Post.Community.Name, "p/"+m.PostDetailModel.Post.Title)
 	case StateCommunities:
-		bc += "> COMMUNITIES "
+		crumbs = append(crumbs, "COMMUNITIES")
 	case StateCreatePost:
-		bc += "> NEW POST "
+		crumbs = append(crumbs, "NEW POST")
 	case StateEditPost:
-		bc += "> EDIT POST "
+		crumbs = append(crumbs, "EDIT POST")
 	case StateEditCommunity:
-		bc += "> EDIT COMMUNITY "
+		crumbs = append(crumbs, "EDIT COMMUNITY")
 	case StateProfileSettings:
-		bc += "> SETTINGS "
+		crumbs = append(crumbs, "SETTINGS")
 	case StateHelp:
-		bc += "> HELP "
+		crumbs = append(crumbs, "HELP")
 	case StateLogin:
-		bc += "> LOGIN "
+		crumbs = append(crumbs, "LOGIN")
 	case StateRegister:
-		bc += "> REGISTER "
+		crumbs = append(crumbs, "REGISTER")
 	case StateSelection:
-		bc += "> SELECT "
+		crumbs = append(crumbs, "SELECT")
 	case StateConfirm:
-		bc += "> CONFIRM "
+		crumbs = append(crumbs, "CONFIRM")
 	}
 
-	header := m.Theme.Title.Render(bc)
-	if m.Client.Token != "" {
-		userStr := "(Logged In)"
-		if m.Me != nil {
-			userStr = fmt.Sprintf("u/%s", m.Me.Username)
-		}
-		if m.Wallet != nil {
-			userStr += fmt.Sprintf(" | 🪙 %d | 💎 %d", m.Wallet.Coins, m.Wallet.Tokens)
-		}
-		header += m.Theme.TextSubtle.
-			MarginLeft(1).
-			Render("(" + userStr + ")")
+	width := max(0, m.Width)
+	left := m.renderBreadcrumbBar(crumbs)
+	if width > 0 && lipgloss.Width(left) > width {
+		left = m.renderBreadcrumbBar(m.compactBreadcrumbs(crumbs, width))
 	}
-	return header
+
+	right := m.renderHeaderUserInfo()
+	if right == "" {
+		return left
+	}
+
+	if width == 0 {
+		return lipgloss.JoinHorizontal(lipgloss.Left, left, " ", right)
+	}
+
+	if lipgloss.Width(left)+1+lipgloss.Width(right) <= width {
+		return left + strings.Repeat(" ", width-lipgloss.Width(left)-lipgloss.Width(right)) + right
+	}
+
+	compactLeft := m.renderBreadcrumbBar(m.compactBreadcrumbs(crumbs, width))
+	if lipgloss.Width(compactLeft)+1+lipgloss.Width(right) <= width {
+		return compactLeft + strings.Repeat(" ", width-lipgloss.Width(compactLeft)-lipgloss.Width(right)) + right
+	}
+
+	if lipgloss.Width(right) > width {
+		right = m.truncateHeaderLine(right, width)
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, compactLeft, right)
+}
+
+func (m MainModel) renderBreadcrumbBar(crumbs []string) string {
+	if len(crumbs) == 0 {
+		return ""
+	}
+
+	primary := m.Theme.Title.Copy().Padding(0, 0)
+	secondary := m.Theme.FooterSurface.Copy().Padding(0, 1).Foreground(m.Theme.TextSubtle.GetForeground())
+	separator := m.Theme.TextSubtle.Render(" › ")
+
+	parts := make([]string, 0, len(crumbs)*2-1)
+	for i, crumb := range crumbs {
+		label := "[" + m.truncateHeaderLabel(crumb, 28) + "]"
+		style := secondary
+		if i == 0 || i == len(crumbs)-1 {
+			style = primary
+		}
+		parts = append(parts, style.Render(label))
+		if i < len(crumbs)-1 {
+			parts = append(parts, separator)
+		}
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Center, parts...)
+}
+
+func (m MainModel) renderHeaderUserInfo() string {
+	if m.Client.Token == "" {
+		return ""
+	}
+
+	info := []string{"[logged in]"}
+	if m.Me != nil {
+		info[0] = fmt.Sprintf("[u/%s]", m.truncateHeaderLabel(m.Me.Username, 18))
+	}
+	if m.Wallet != nil {
+		info = append(info, fmt.Sprintf("[🪙 %d]", m.Wallet.Coins), fmt.Sprintf("[💎 %d]", m.Wallet.Tokens))
+	}
+
+	pill := m.Theme.FooterSurface.Copy().Padding(0, 1).Foreground(m.Theme.Text.GetForeground())
+	parts := make([]string, 0, len(info))
+	for _, item := range info {
+		parts = append(parts, pill.Render(item))
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Left, parts...)
+}
+
+func (m MainModel) compactBreadcrumbs(crumbs []string, width int) []string {
+	if len(crumbs) <= 2 {
+		return crumbs
+	}
+	compact := []string{crumbs[0], "…", crumbs[len(crumbs)-1]}
+	if width > 0 && lipgloss.Width(m.renderBreadcrumbBar(compact)) <= width {
+		return compact
+	}
+	compact[2] = m.truncateHeaderLabel(compact[2], 20)
+	return compact
+}
+
+func (m MainModel) truncateHeaderLine(s string, width int) string {
+	if width <= 0 || lipgloss.Width(s) <= width {
+		return s
+	}
+	plain := m.truncateHeaderLabel(stripHeaderBrackets(s), max(1, width))
+	return m.Theme.TextSubtle.Render(plain)
+}
+
+func (m MainModel) truncateHeaderLabel(label string, limit int) string {
+	if limit <= 0 || utf8.RuneCountInString(label) <= limit {
+		return label
+	}
+	if limit == 1 {
+		return "…"
+	}
+	return string([]rune(label)[:limit-1]) + "…"
+}
+
+func stripHeaderBrackets(s string) string {
+	replacer := strings.NewReplacer("[", "", "]", "", "›", " ")
+	return strings.Join(strings.Fields(replacer.Replace(s)), " ")
 }
 
 func (m MainModel) renderConfirmDialog() string {
