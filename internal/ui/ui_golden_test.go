@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/charmbracelet/bubbles/list"
 	"github.com/rfcku/ditto-cli/internal/config"
 	"github.com/rfcku/ditto-cli/internal/types"
 	"github.com/rfcku/ditto-cli/internal/ui/views"
@@ -75,23 +76,71 @@ func TestGoldenCommunitySelectionIndicator(t *testing.T) {
 	m.CommunityModel.Loaded = true
 	m.CommunityModel.SetCommunities([]types.Community{
 		{
-			ID:        "community-1",
-			Name:      "ditto",
-			Title:     "Core product",
-			Scores:    types.Score{SubCount: 120, PostCount: 42},
-			CreatedAt: time.Now().Add(-6 * time.Hour),
+			ID:          "community-1",
+			Name:        "ditto",
+			Title:       "Core product",
+			Description: "Backend and product workstream.",
+			Scores:      types.Score{SubCount: 120, PostCount: 42},
+			CreatedAt:   time.Now().Add(-6 * time.Hour),
 		},
 		{
-			ID:        "community-2",
-			Name:      "design",
-			Title:     "Design notes",
-			Scores:    types.Score{SubCount: 24, PostCount: 9},
-			CreatedAt: time.Now().Add(-2 * time.Hour),
+			ID:          "community-2",
+			Name:        "design",
+			Title:       "Design notes",
+			Description: "UI polish and experiments.",
+			Scores:      types.Score{SubCount: 24, PostCount: 9},
+			CreatedAt:   time.Now().Add(-2 * time.Hour),
 		},
 	})
 	m.CommunityModel.SetSize(82, 16)
 
 	assertGolden(t, "community_selection_indicator.golden", m.CommunityModel.View())
+}
+
+func TestGoldenSearchMixedHierarchy(t *testing.T) {
+	m := newGoldenMainModel(84, 24, "")
+	m.State = StateCommunities
+	m.CommunityModel.Loaded = true
+	m.CommunityModel.SetItems([]list.Item{
+		views.CommunityItem{Community: types.Community{
+			ID:          "community-1",
+			Name:        "ditto",
+			Title:       "Core product",
+			Description: "Backend, frontend, and CLI coordination.",
+			Scores:      types.Score{SubCount: 120, PostCount: 42},
+			CreatedAt:   time.Now().Add(-6 * time.Hour),
+		}},
+		views.PostItem{Post: types.Post{
+			ID:        "post-1",
+			Title:     "List cards should feel like one system",
+			Content:   "Search results get noisy when posts and communities do not share a clear hierarchy.",
+			Author:    types.UserMin{Username: "guide"},
+			Community: types.CommunityMin{Name: "ditto"},
+			Scores:    types.Score{VoteScore: 14, CommentCount: 4, AwardCount: 1},
+			CreatedAt: time.Now().Add(-2 * time.Hour),
+		}},
+		views.UserItem{User: types.User{
+			ID:        "user-1",
+			Username:  "terminalfox",
+			CreatedAt: time.Now().Add(-48 * time.Hour),
+		}},
+	})
+	m.CommunityModel.SetSize(84, 26)
+
+	assertGolden(t, "search_mixed_hierarchy.golden", m.CommunityModel.View())
+}
+
+func TestGoldenFollowedUsersHierarchy(t *testing.T) {
+	m := newGoldenMainModel(84, 24, "")
+	m.State = StateCommunities
+	m.CommunityModel.Loaded = true
+	m.CommunityModel.SetUsers([]types.User{
+		{ID: "user-1", Username: "terminalfox", CreatedAt: time.Now().Add(-48 * time.Hour)},
+		{ID: "user-2", Username: "rook", CreatedAt: time.Now().Add(-6 * time.Hour)},
+	})
+	m.CommunityModel.SetSize(84, 16)
+
+	assertGolden(t, "followed_users_hierarchy.golden", m.CommunityModel.View())
 }
 
 func TestGoldenLoginView(t *testing.T) {
