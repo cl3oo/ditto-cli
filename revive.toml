@@ -1,0 +1,27 @@
+# revive.toml
+# See https://github.com/mgechev/revive#configuration for details.
+
+ignoreGeneratedHeader = false
+severity = "warning"
+confidence = 0.8
+
+[rule.blank-imports]
+[rule.context-as-argument]
+[rule.context-keys-type]
+[rule.dot-imports]
+[rule.error-return]
+[rule.error-strings]
+[rule.error-naming]
+[rule.exported]
+  disabled = true
+[rule.if-return]
+[rule.increment-decrement]
+[rule.var-naming]
+[rule.var-declaration]
+[rule.package-comments]
+  disabled = true
+[rule.unused-parameter]
+  disabled = true
+[rule.range]
+[rule.unreachable-code]
+[rule.redefines-builtin-id]

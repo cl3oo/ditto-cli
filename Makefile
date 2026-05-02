@@ -9,8 +9,8 @@ COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 BUILD_DATE ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS := -s -w -X github.com/rfcku/ditto-cli/cmd.version=$(VERSION) -X github.com/rfcku/ditto-cli/cmd.commit=$(COMMIT) -X github.com/rfcku/ditto-cli/cmd.buildDate=$(BUILD_DATE)
 BUILD_FLAGS := -ldflags "$(LDFLAGS)"
-GOLANGCI_LINT := $(GOBIN)/golangci-lint
-GOLANGCI_LINT_PKG := github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+REVIVE := $(GOBIN)/revive
+REVIVE_PKG := github.com/mgechev/revive@latest
 
 run:
 	go run $(BUILD_FLAGS) . tui
@@ -22,12 +22,12 @@ build:
 test:
 	go test ./...
 
-$(GOLANGCI_LINT):
+$(REVIVE):
 	@mkdir -p $(GOBIN)
-	GOBIN=$(GOBIN) go install $(GOLANGCI_LINT_PKG)
+	GOBIN=$(GOBIN) go install $(REVIVE_PKG)
 
-lint: $(GOLANGCI_LINT)
-	$(GOLANGCI_LINT) run
+lint: $(REVIVE)
+	$(REVIVE) -config revive.toml -formatter friendly ./...
 
 smoke: build
 	./scripts/smoke.sh

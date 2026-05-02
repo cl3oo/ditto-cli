@@ -49,11 +49,11 @@ jobs:
           go-version-file: 'go.mod'
           cache: true
 
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v9
-        with:
-          version: v2.11.4
-          install-mode: goinstall
+      - name: Install revive
+        run: go install github.com/mgechev/revive@latest
+
+      - name: Run revive
+        run: revive -config revive.toml -formatter friendly ./...
 
   build:
     runs-on: ubuntu-latest
