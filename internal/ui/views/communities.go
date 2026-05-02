@@ -41,28 +41,19 @@ func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem
 	cardStyle := d.Theme.Post.
 		Width(max(20, m.Width()-6))
 
-	var meta, title, body, stats string
+	var card listCard
 
 	if i, ok := listItem.(CommunityItem); ok {
-		meta = fmt.Sprintf("c/%s • created %s", i.Name, RelativeTime(i.CreatedAt))
-		title = i.Community.Title
-		body = clampLine(i.Community.Description, max(24, m.Width()-14))
-		stats = fmt.Sprintf("👥 %d members • 📝 %d posts", i.Scores.SubCount, i.Scores.PostCount)
+		card = newCommunityListCard(i.Community, m.Width())
 	} else if i, ok := listItem.(UserItem); ok {
-		meta = fmt.Sprintf("u/%s • joined %s", i.Username, RelativeTime(i.CreatedAt))
-		title = i.Title()
-		body = "Ditto user"
-		stats = i.Description()
+		card = newUserListCard(i.User)
 	} else if i, ok := listItem.(PostItem); ok {
-		meta = fmt.Sprintf("c/%s • u/%s • %s", i.Community.Name, i.Author.Username, RelativeTime(i.CreatedAt))
-		title = i.Title()
-		body = clampLine(i.Content, max(24, m.Width()-14))
-		stats = fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d", i.Scores.VoteScore, i.Scores.CommentCount, i.Scores.AwardCount)
+		card = newPostListCard(i.Post, m.Width())
 	} else {
 		return
 	}
 
-	_, _ = fmt.Fprint(w, renderVerticalCard(cardStyle, isSelected, d.Theme, meta, title, body, stats))
+	_, _ = fmt.Fprint(w, renderListCard(cardStyle, isSelected, d.Theme, card))
 }
 
 type CommunityModel struct {

@@ -57,15 +57,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	cardStyle := d.Theme.Post.
 		Width(max(20, m.Width()-6))
 
-	content := renderVerticalCard(
-		cardStyle,
-		isSelected,
-		d.Theme,
-		fmt.Sprintf("c/%s • u/%s • %s", i.Community.Name, i.Author.Username, RelativeTime(i.CreatedAt)),
-		i.Title(),
-		clampLine(i.Content, max(24, m.Width()-14)),
-		fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d", i.Scores.VoteScore, i.Scores.CommentCount, i.Scores.AwardCount),
-	)
+	content := renderListCard(cardStyle, isSelected, d.Theme, newPostListCard(i.Post, m.Width()))
 
 	_, _ = fmt.Fprint(w, content)
 }
