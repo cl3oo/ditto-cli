@@ -56,21 +56,7 @@ func renderFormActions(contentWidth int, actions []string) string {
 }
 
 func renderFormFeedback(t theme.Theme, tone, title, body string) string {
-	var box lipgloss.Style
-	var heading lipgloss.Style
-	if tone == "success" {
-		box = t.Surface.Copy().BorderForeground(t.Success.GetForeground())
-		heading = t.Success
-	} else {
-		box = t.Surface.Copy().BorderForeground(t.Error.GetForeground())
-		heading = t.Error
-	}
-
-	lines := []string{heading.Render(title)}
-	if body != "" {
-		lines = append(lines, t.Text.Render(body))
-	}
-	return box.Render(strings.Join(lines, "\n"))
+	return RenderStateSurface(t, 0, tone, title, body, nil)
 }
 
 func formBoxWidth(viewportWidth int) int {

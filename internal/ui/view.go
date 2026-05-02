@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/rfcku/ditto-cli/internal/ui/views"
 )
 
 func (m MainModel) View() string {
@@ -18,7 +19,7 @@ func (m MainModel) View() string {
 	var content string
 	switch m.State {
 	case StateLoading:
-		content = "  Loading..."
+		content = views.RenderCenteredStateSurface(m.Theme, m.Width, max(0, m.Height-6), "loading", "Loading Ditto", "Pulling the latest view from the instance.", nil)
 	case StateFeed:
 		if m.FeedModel.Loaded && len(m.FeedModel.List.Items()) == 0 {
 			content = m.renderEmptyState(
@@ -65,12 +66,13 @@ func (m MainModel) View() string {
 	s.WriteString(content)
 
 	footer := m.renderFooterHelp()
+	status := m.renderStatusSurface()
 	footerHeight := lipgloss.Height(footer)
 	if m.CommandBuffer != "" {
 		footerHeight++
 	}
-	if m.StatusMessage != "" {
-		footerHeight++
+	if status != "" {
+		footerHeight += lipgloss.Height(status)
 	}
 
 	contentHeight := lipgloss.Height(content)
@@ -81,12 +83,8 @@ func (m MainModel) View() string {
 		s.WriteString(strings.Repeat("\n", padding))
 	}
 
-	if m.StatusMessage != "" {
-		style := m.Theme.SuccessBanner
-		if strings.HasPrefix(m.StatusMessage, "Error") {
-			style = m.Theme.ErrorBanner
-		}
-		s.WriteString("\n " + style.Render(m.StatusMessage))
+	if status != "" {
+		s.WriteString("\n" + status)
 	}
 
 	if m.CommandBuffer != "" {
@@ -98,6 +96,34 @@ func (m MainModel) View() string {
 	}
 
 	return s.String()
+}
+
+func (m MainModel) renderStatusSurface() string {
+	if m.StatusMessage == "" {
+		return ""
+	}
+
+	tone := "success"
+	title := "Done"
+	body := m.StatusMessage
+
+	switch {
+	case strings.HasPrefix(m.StatusMessage, "Error:"):
+		tone = "error"
+		title = "Something went sideways"
+		body = strings.TrimSpace(strings.TrimPrefix(m.StatusMessage, "Error:"))
+	case strings.HasPrefix(strings.ToLower(m.StatusMessage), "error"):
+		tone = "error"
+		title = "Something went sideways"
+	case strings.Contains(strings.ToLower(m.StatusMessage), "expired"):
+		tone = "error"
+		title = "Session expired"
+	case strings.Contains(strings.ToLower(m.StatusMessage), "unknown command"):
+		tone = "error"
+		title = "Command not found"
+	}
+
+	return lipgloss.PlaceHorizontal(max(0, m.Width), lipgloss.Center, views.RenderStateSurface(m.Theme, m.Width, tone, title, body, nil))
 }
 
 func (m MainModel) renderFooterHelp() string {
@@ -123,29 +149,7 @@ func (m MainModel) renderFooterHelp() string {
 }
 
 func (m MainModel) renderEmptyState(title, body string, actions []string) string {
-	lines := []string{
-		m.Theme.Title.Render(" " + title + " "),
-		"",
-		m.Theme.Text.Render(body),
-	}
-	if len(actions) > 0 {
-		lines = append(lines, "", m.Theme.Text.Render("Try:"))
-		for _, action := range actions {
-			lines = append(lines, "  • "+m.Theme.TextSubtle.Render(action))
-		}
-	}
-
-	box := m.Theme.Surface.
-		BorderForeground(m.Theme.TextSubtle.GetForeground()).
-		Width(min(max(52, m.Width-12), 88))
-
-	return lipgloss.Place(
-		max(0, m.Width),
-		max(0, m.Height-6),
-		lipgloss.Center,
-		lipgloss.Center,
-		box.Render(strings.Join(lines, "\n")),
-	)
+	return views.RenderCenteredStateSurface(m.Theme, m.Width, max(0, m.Height-6), "empty", title, body, actions)
 }
 
 func (m MainModel) renderSelectionMenu() string {
