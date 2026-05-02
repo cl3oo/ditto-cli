@@ -65,6 +65,10 @@ func (m MainModel) helpManualContent() string {
 
 Welcome to Ditto. This guide sticks to what the TUI actually does right now.
 
+## Starting the app 🚀
+- Run **ditto-cli tui** to open the full terminal UI.
+- Run **ditto-cli** without a subcommand when you want the root help and command list.
+
 ## Navigation 🕹️
 - **j / k** or **Up / Down**: Move through lists and comments.
 - **Enter**: Open the selected post or community, or submit the focused form.
