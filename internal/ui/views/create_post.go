@@ -92,10 +92,7 @@ func (m CreatePostModel) View() string {
 	s += m.Theme.Text.Render("Community:") + "\n" + m.CommunityID.View() + "\n\n"
 	s += m.Theme.Text.Render("Content:") + "\n" + m.Content.View() + "\n\n"
 
-	submitBtn := "[ Submit ]"
-	if m.Focused == 3 {
-		submitBtn = m.Theme.Selected.Render("[ Submit ]")
-	}
+	submitBtn := m.Theme.RenderPrimaryButton("[ Submit ]", m.Focused == 3)
 	s += submitBtn + "\n"
 
 	return lipgloss.NewStyle().Padding(1, 2).Render(s)

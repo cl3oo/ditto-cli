@@ -101,15 +101,8 @@ func (m LoginModel) View() string {
 		submitLabel = "[ Save & Continue ]"
 	}
 
-	submitBtn := submitLabel
-	if m.Focused == 2 {
-		submitBtn = m.Theme.Selected.Render(submitLabel)
-	}
-
-	registerBtn := "[ Register New Account ]"
-	if m.Focused == 3 {
-		registerBtn = m.Theme.Selected.Render("[ Register New Account ]")
-	}
+	submitBtn := m.Theme.RenderPrimaryButton(submitLabel, m.Focused == 2)
+	registerBtn := m.Theme.RenderSecondaryButton("[ Register New Account ]", m.Focused == 3)
 
 	s += submitBtn + "  " + registerBtn + "\n"
 
