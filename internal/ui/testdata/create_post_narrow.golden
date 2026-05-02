@@ -1,29 +1,32 @@
 [DITTO] › [NEW POST]
 
-
-  Create New Post
-
-  Title:
-  > Patch narrow layout snapshots
-
-  Community:
-  > ditto
-
-  Content:
-  ┃   1 Golden fixtures should catch responsive regressions
-  ┃     before users do.
-  ┃
-  ┃
-  ┃
-  ┃
-  ┃
-  ┃
-  ┃
-  ┃
-
-  [ Submit ]
-
-
+╭────────────────────────────────────────────────────────────────────────╮
+│                                                                        │
+│    Create new post                                                     │
+│                                                                        │
+│  Draft a post without leaving the terminal.                            │
+│                                                                        │
+│  Title                                                                 │
+│  > Patch narrow layout snapshots                                       │
+│                                                                        │
+│  Community                                                             │
+│  > ditto                                                               │
+│                                                                        │
+│  Content                                                               │
+│  ┃   1 Golden fixtures should catch responsive regressions before      │
+│  ┃     users do.                                                       │
+│  ┃                                                                     │
+│  ┃                                                                     │
+│  ┃                                                                     │
+│  ┃                                                                     │
+│  ┃                                                                     │
+│  ┃                                                                     │
+│  ┃                                                                     │
+│  ┃                                                                     │
+│                                                                        │
+│  [ Submit ]                                                            │
+│                                                                        │
+╰────────────────────────────────────────────────────────────────────────╯
  Global  : palette  •  enter open  •  q back  •  :man manual
  Here  tab next field  •  shift+tab prev  •  enter submit  •
 esc cancel

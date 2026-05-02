@@ -1,19 +1,23 @@
 [DITTO] › [SETTINGS]                             [u/sunny]  [🪙 42]  [💎 7]
 
-
-  Profile Settings
-
-  Avatar URL:
-  > https://cdn.example.com/avatar.png
-
-  [ Save ]
-
-
-  Tip: Use :delete-account to permanently delete your account.
-
-
-
-
-
+╭────────────────────────────────────────────────────────────────────────╮
+│                                                                        │
+│    Profile settings                                                    │
+│                                                                        │
+│  Update the account details that the TUI can edit today.               │
+│                                                                        │
+│  Avatar URL                                                            │
+│  > https://cdn.example.com/avatar.png                                  │
+│                                                                        │
+│  [ Save ]                                                              │
+│                                                                        │
+│  ╭───────────────────────────────────────────────────────────╮         │
+│  │                                                           │         │
+│  │  Danger zone                                              │         │
+│  │  Use :delete-account to permanently remove your account.  │         │
+│  │                                                           │         │
+│  ╰───────────────────────────────────────────────────────────╯         │
+│                                                                        │
+╰────────────────────────────────────────────────────────────────────────╯
  Global  : palette  •  enter open  •  q back  •  :man manual
  Here  tab next field  •  shift+tab prev  •  enter submit  •  esc cancel

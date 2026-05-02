@@ -122,6 +122,12 @@ func NewMainModel(cfg *config.Config) MainModel {
 	m.EditPostModel.SetTheme(t)
 	m.EditCommunityModel.SetTheme(t)
 	m.SettingsModel.SetTheme(t)
+	m.LoginModel.SetSize(0)
+	m.RegisterModel.SetSize(0)
+	m.CreatePostModel.SetSize(0)
+	m.EditPostModel.SetSize(0)
+	m.EditCommunityModel.SetSize(0)
+	m.SettingsModel.SetSize(0)
 	m.PaletteModel.SetTheme(t)
 	m.HelpModel.SetContent(m.helpManualContent())
 
@@ -695,6 +701,12 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.FeedModel.SetSize(msg.Width, msg.Height-4)
 		m.PostDetailModel.SetSize(msg.Width, msg.Height-4)
 		m.CommunityModel.SetSize(msg.Width, msg.Height-4)
+		m.LoginModel.SetSize(msg.Width)
+		m.RegisterModel.SetSize(msg.Width)
+		m.CreatePostModel.SetSize(msg.Width)
+		m.EditPostModel.SetSize(msg.Width)
+		m.EditCommunityModel.SetSize(msg.Width)
+		m.SettingsModel.SetSize(msg.Width)
 
 	case feedMsg:
 		m.State = StateFeed

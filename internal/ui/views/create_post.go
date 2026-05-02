@@ -4,7 +4,6 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/rfcku/ditto-cli/internal/ui/theme"
 )
 
@@ -14,6 +13,7 @@ type CreatePostModel struct {
 	Content     textarea.Model
 	Focused     int // 0: Title, 1: CommunityID, 2: Content, 3: Submit
 	Theme       theme.Theme
+	Width       int
 }
 
 func NewCreatePostModel() CreatePostModel {
@@ -26,7 +26,10 @@ func NewCreatePostModel() CreatePostModel {
 
 	cont := textarea.New()
 	cont.Placeholder = "Content (Markdown supported)..."
-	cont.SetWidth(60)
+	fieldWidth := fitInputWidth(0, 60)
+	t.Width = fieldWidth
+	cID.Width = fieldWidth
+	cont.SetWidth(fieldWidth)
 	cont.SetHeight(10)
 
 	return CreatePostModel{
@@ -43,6 +46,14 @@ func (m CreatePostModel) Init() tea.Cmd {
 
 func (m *CreatePostModel) SetTheme(t theme.Theme) {
 	m.Theme = t
+}
+
+func (m *CreatePostModel) SetSize(width int) {
+	m.Width = width
+	fieldWidth := fitInputWidth(width, 60)
+	m.Title.Width = fieldWidth
+	m.CommunityID.Width = fieldWidth
+	m.Content.SetWidth(fieldWidth)
 }
 
 func (m CreatePostModel) Update(msg tea.Msg) (CreatePostModel, tea.Cmd) {
@@ -85,15 +96,11 @@ func (m CreatePostModel) Update(msg tea.Msg) (CreatePostModel, tea.Cmd) {
 }
 
 func (m CreatePostModel) View() string {
-	var s string
-	s += m.Theme.AccentText.Bold(true).Render("Create New Post") + "\n\n"
-
-	s += m.Theme.Text.Render("Title:") + "\n" + m.Title.View() + "\n\n"
-	s += m.Theme.Text.Render("Community:") + "\n" + m.CommunityID.View() + "\n\n"
-	s += m.Theme.Text.Render("Content:") + "\n" + m.Content.View() + "\n\n"
-
 	submitBtn := m.Theme.RenderPrimaryButton("[ Submit ]", m.Focused == 3)
-	s += submitBtn + "\n"
-
-	return lipgloss.NewStyle().Padding(1, 2).Render(s)
+	sections := []formSection{
+		{Label: "Title", Content: m.Title.View()},
+		{Label: "Community", Content: m.CommunityID.View()},
+		{Label: "Content", Content: m.Content.View()},
+	}
+	return renderFormShell(m.Theme, m.Width, "Create new post", "Draft a post without leaving the terminal.", sections, []string{submitBtn}, "")
 }
