@@ -56,12 +56,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 	isSelected := index == m.Index()
 
 	cardStyle := d.Theme.Post.
-		Width(max(20, m.Width()-4))
-
-	if isSelected {
-		cardStyle = d.Theme.SelectedCard.
-			Width(max(20, m.Width()-4))
-	}
+		Width(max(20, m.Width()-6))
 
 	header := d.Theme.TextSubtle.Render(
 		fmt.Sprintf("u/%s in c/%s • %s", i.Author.Username, i.Community.Name, RelativeTime(i.CreatedAt)),
@@ -87,7 +82,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 		stats,
 	)
 
-	_, _ = fmt.Fprint(w, cardStyle.Render(content))
+	_, _ = fmt.Fprint(w, withSelectionIndicator(cardStyle.Render(content), isSelected, d.Theme))
 }
 
 type FeedModel struct {

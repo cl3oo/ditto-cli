@@ -40,12 +40,7 @@ func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem
 	isSelected := index == m.Index()
 
 	cardStyle := d.Theme.Post.
-		Width(max(20, m.Width()-4))
-
-	if isSelected {
-		cardStyle = d.Theme.SelectedCard.
-			Width(max(20, m.Width()-4))
-	}
+		Width(max(20, m.Width()-6))
 
 	var header, title, stats string
 
@@ -94,7 +89,7 @@ func (d communityDelegate) Render(w io.Writer, m list.Model, index int, listItem
 		stats,
 	)
 
-	_, _ = fmt.Fprint(w, cardStyle.Render(content))
+	_, _ = fmt.Fprint(w, withSelectionIndicator(cardStyle.Render(content), isSelected, d.Theme))
 }
 
 type CommunityModel struct {

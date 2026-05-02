@@ -1,4 +1,4 @@
-Shipping snapshot coverage without making the TUI miserable (p/post-42)
+  Shipping snapshot coverage without making the TUI miserable (p/post-42
 u/guide (u/u-1) in c/ditto (c/c-1) • ↑↓ 12 • 💬 3 • 💎 1 • 2h ago
 
 This post body is intentionally long so the renderer has to wrap
@@ -9,13 +9,13 @@ stays readable in a constrained viewport.
 
 Comments:
 
- u/sable • ↑↓ 7 • 1h ago
-  Love this direction. Golden tests are boring right until they save a r
+   u/sable • ↑↓ 7 • 1h ago
+    Love this direction. Golden tests are boring right until they save a
 
-├─ u/rook • ↑↓ 4 • 1h ago
-    Yep. They are basically guard rails with better manners.
+> ├─ u/rook • ↑↓ 4 • 1h ago
+      Yep. They are basically guard rails with better manners.
 
- u/moss • ↑↓ 5 • 35m ago
-  Please include a narrow-width fixture too, terminals love chaos.
+   u/moss • ↑↓ 5 • 35m ago
+    Please include a narrow-width fixture too, terminals love chaos.
 
   Comment by u/rook: (enter) reply • (r)eply • (p)rofile • (s)hare • (R)eport

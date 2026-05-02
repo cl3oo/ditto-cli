@@ -189,17 +189,16 @@ func (m *PostDetailModel) render() {
 	var s strings.Builder
 
 	// Render Post Header
-	headerStyle := m.Theme.AccentText.Bold(true)
-
+	headerStyle := m.Theme.Text.Bold(true)
 	if m.SelectedIdx == -1 {
-		headerStyle = headerStyle.Reverse(true)
+		headerStyle = m.Theme.AccentText.Bold(true)
 	}
 
 	headerText := fmt.Sprintf("%s (p/%s)", m.Post.Title, m.Post.ID)
 	if m.Post.Locked {
 		headerText += " [LOCKED]"
 	}
-	s.WriteString(headerStyle.Render(headerText) + "\n")
+	s.WriteString(withSelectionIndicator(headerStyle.Render(headerText), m.SelectedIdx == -1, m.Theme) + "\n")
 
 	s.WriteString(m.Theme.TextSubtle.Render(fmt.Sprintf("u/%s (u/%s) in c/%s (c/%s) • ↑↓ %d • 💬 %d • 💎 %d • %s",
 		m.Post.Author.Username, m.Post.Author.ID,
@@ -247,8 +246,7 @@ func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) st
 	contentStyle := lipgloss.NewStyle().PaddingLeft(c.Depth*2 + 2)
 
 	if selected {
-		authorStyle = authorStyle.Reverse(true)
-		contentStyle = m.Theme.SelectedRow.PaddingLeft(c.Depth*2 + 2)
+		authorStyle = m.Theme.AccentText.Bold(true)
 	}
 
 	_, _ = fmt.Fprintf(&s, "%s %s • %s • %s\n",
@@ -258,7 +256,7 @@ func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) st
 		scoreStyle.Render(RelativeTime(c.CreatedAt)))
 
 	// Wrap comment content
-	s.WriteString(contentStyle.Render(c.Content) + "\n\n")
+	s.WriteString(contentStyle.Render(c.Content))
 
-	return s.String()
+	return withSelectionIndicator(s.String(), selected, m.Theme) + "\n\n"
 }

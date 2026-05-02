@@ -42,6 +42,58 @@ func TestGoldenMainViewCommunitiesEmpty(t *testing.T) {
 	assertGolden(t, "main_communities_empty.golden", m.View())
 }
 
+func TestGoldenFeedSelectionIndicator(t *testing.T) {
+	m := newGoldenMainModel(82, 24, "")
+	m.State = StateFeed
+	m.FeedModel.Loaded = true
+	m.FeedModel.SetPosts([]types.Post{
+		{
+			ID:        "post-1",
+			Title:     "Arrow selection should be obvious without inverting the whole card",
+			Author:    types.UserMin{Username: "guide"},
+			Community: types.CommunityMin{Name: "ditto"},
+			Scores:    types.Score{VoteScore: 12, CommentCount: 3, AwardCount: 1},
+			CreatedAt: time.Now().Add(-90 * time.Minute),
+		},
+		{
+			ID:        "post-2",
+			Title:     "Unselected cards should stay calm",
+			Author:    types.UserMin{Username: "rook"},
+			Community: types.CommunityMin{Name: "ux"},
+			Scores:    types.Score{VoteScore: 5, CommentCount: 1, AwardCount: 0},
+			CreatedAt: time.Now().Add(-30 * time.Minute),
+		},
+	})
+	m.FeedModel.SetSize(82, 16)
+
+	assertGolden(t, "feed_selection_indicator.golden", m.FeedModel.View())
+}
+
+func TestGoldenCommunitySelectionIndicator(t *testing.T) {
+	m := newGoldenMainModel(82, 24, "")
+	m.State = StateCommunities
+	m.CommunityModel.Loaded = true
+	m.CommunityModel.SetCommunities([]types.Community{
+		{
+			ID:        "community-1",
+			Name:      "ditto",
+			Title:     "Core product",
+			Scores:    types.Score{SubCount: 120, PostCount: 42},
+			CreatedAt: time.Now().Add(-6 * time.Hour),
+		},
+		{
+			ID:        "community-2",
+			Name:      "design",
+			Title:     "Design notes",
+			Scores:    types.Score{SubCount: 24, PostCount: 9},
+			CreatedAt: time.Now().Add(-2 * time.Hour),
+		},
+	})
+	m.CommunityModel.SetSize(82, 16)
+
+	assertGolden(t, "community_selection_indicator.golden", m.CommunityModel.View())
+}
+
 func TestGoldenLoginView(t *testing.T) {
 	main := newGoldenMainModel(0, 0, "")
 	m := views.NewLoginModel()
