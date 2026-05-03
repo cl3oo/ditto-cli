@@ -25,8 +25,10 @@ func (i PostItem) Description() string {
 }
 func (i PostItem) FilterValue() string { return i.Post.Title + " " + i.Author.Username }
 
+var RelativeTimeNow = time.Now
+
 func RelativeTime(t time.Time) string {
-	d := time.Since(t)
+	d := RelativeTimeNow().Sub(t)
 	if d < time.Minute {
 		return "just now"
 	}
