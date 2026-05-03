@@ -18,6 +18,7 @@ type PostDetailModel struct {
 	Comments          []types.Comment
 	FlattenedComments []commentWithDepth
 	SelectedIdx       int // -1 for post, 0+ for comments
+	MediaPreview      string
 
 	Viewport         viewport.Model
 	CommentInput     textinput.Model
@@ -166,6 +167,7 @@ func (m PostDetailModel) View() string {
 func (m *PostDetailModel) SetContent(post types.Post, comments []types.Comment) {
 	m.Post = post
 	m.Comments = comments
+	m.MediaPreview = ""
 	m.rebuildFlattenedComments()
 	m.Ready = true
 	m.SelectedIdx = -1
@@ -265,6 +267,12 @@ func (m *PostDetailModel) render() {
 	}
 	out, _ := renderer.Render(m.Post.Content)
 	s.WriteString(out + "\n")
+	if strings.TrimSpace(m.MediaPreview) != "" {
+		s.WriteString("\n")
+		s.WriteString(m.Theme.Text.Bold(true).Render("Preview:") + "\n")
+		s.WriteString(m.Theme.Surface.Padding(0, 1).Render(m.MediaPreview))
+		s.WriteString("\n")
+	}
 
 	s.WriteString(m.Theme.Text.Bold(true).Render("Comments:") + "\n\n")
 
@@ -328,6 +336,13 @@ func commentTreePrefixes(c commentWithDepth) (string, string) {
 	}
 
 	return shared.String() + branch, shared.String() + stem
+}
+
+func (m *PostDetailModel) SetMediaPreview(preview string) {
+	m.MediaPreview = strings.TrimRight(preview, "\n")
+	if m.Ready {
+		m.render()
+	}
 }
 
 func wrapCommentContent(content string, width int) []string {

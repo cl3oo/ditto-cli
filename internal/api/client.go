@@ -594,11 +594,11 @@ func (c *Client) UploadMedia(targetID string, targetType int, filePath string) e
 	return nil
 }
 
-func (c *Client) DownloadMedia(mediaID, outputPath string) error {
+func (c *Client) GetMedia(mediaID string) ([]byte, error) {
 	url := strings.TrimSuffix(c.BaseURL, "/") + "/media/" + mediaID
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if c.Token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.Token)
@@ -606,16 +606,24 @@ func (c *Client) DownloadMedia(mediaID, outputPath string) error {
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer func() {
 		_ = resp.Body.Close()
 	}()
 
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("download failed: %d", resp.StatusCode)
+		return nil, fmt.Errorf("download failed: %d", resp.StatusCode)
 	}
 
+	return io.ReadAll(resp.Body)
+}
+
+func (c *Client) DownloadMedia(mediaID, outputPath string) error {
+	bits, err := c.GetMedia(mediaID)
+	if err != nil {
+		return err
+	}
 	out, err := os.Create(outputPath)
 	if err != nil {
 		return err
@@ -623,8 +631,7 @@ func (c *Client) DownloadMedia(mediaID, outputPath string) error {
 	defer func() {
 		_ = out.Close()
 	}()
-
-	_, err = io.Copy(out, resp.Body)
+	_, err = out.Write(bits)
 	return err
 }
 

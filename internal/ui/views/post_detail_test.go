@@ -80,3 +80,18 @@ func TestPostDetailRenderCommentItemShowsTreeAndWrapsContent(t *testing.T) {
 		t.Fatalf("expected wrapped multi-line comment, got:\n%s", rendered)
 	}
 }
+
+func TestPostDetailViewShowsMediaPreview(t *testing.T) {
+	m := NewPostDetailModel()
+	m.SetSize(50, 20)
+	m.SetContent(types.Post{ID: "post-1", Title: "Preview post"}, nil)
+	m.SetMediaPreview("@@\n..")
+
+	view := m.View()
+	if !strings.Contains(view, "Preview:") {
+		t.Fatalf("expected preview heading, got:\n%s", view)
+	}
+	if !strings.Contains(view, "@@") {
+		t.Fatalf("expected preview content, got:\n%s", view)
+	}
+}

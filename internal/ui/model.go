@@ -732,6 +732,10 @@ func (m MainModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.State = StatePostDetail
 		m.PostDetailModel.SetContent(msg.post, msg.comments)
 		m.PostDetailModel.SetShowCommentInput(false)
+		return m, m.fetchPostPreview(msg.post)
+
+	case postPreviewMsg:
+		m.PostDetailModel.SetMediaPreview(string(msg))
 		return m, nil
 
 	case appendCommentsMsg:
@@ -838,6 +842,7 @@ type postDetailMsg struct {
 	post     types.Post
 	comments []types.Comment
 }
+type postPreviewMsg string
 type appendCommentsMsg []types.Comment
 type loginSuccessMsg string
 type commentSuccessMsg string
@@ -955,6 +960,29 @@ func (m MainModel) fetchPostDetail(id string) tea.Cmd {
 			return postDetailMsg{post: *post, comments: []types.Comment{}}
 		}
 		return postDetailMsg{post: *post, comments: comments}
+	}
+}
+
+func (m MainModel) fetchPostPreview(post types.Post) tea.Cmd {
+	return func() tea.Msg {
+		for _, media := range post.Media {
+			kind := strings.ToLower(media.Type)
+			if kind != "png" && kind != "jpg" && kind != "jpeg" && kind != "gif" {
+				continue
+			}
+			bits, err := m.Client.GetMedia(media.ID)
+			if err != nil {
+				continue
+			}
+			preview, err := renderASCIIImage(bits, max(16, min(40, m.Width-8)))
+			if err != nil {
+				continue
+			}
+			if strings.TrimSpace(preview) != "" {
+				return postPreviewMsg(preview)
+			}
+		}
+		return nil
 	}
 }
 

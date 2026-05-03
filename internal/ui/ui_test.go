@@ -298,6 +298,31 @@ func TestMainModel_Update_CommandPalette(t *testing.T) {
 	}
 }
 
+func TestMainModel_FetchPostPreview(t *testing.T) {
+	gif := []byte("GIF89a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x00\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/media/m1" {
+			w.Header().Set("Content-Type", "image/gif")
+			_, _ = w.Write(gif)
+			return
+		}
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	m := NewMainModel(config.DefaultConfig())
+	m.Client = api.NewClient(server.URL)
+	m.Width = 80
+	msg := m.fetchPostPreview(types.Post{Media: []types.Media{{ID: "m1", Type: "gif"}}})()
+	preview, ok := msg.(postPreviewMsg)
+	if !ok {
+		t.Fatalf("expected postPreviewMsg, got %T", msg)
+	}
+	if strings.TrimSpace(string(preview)) == "" {
+		t.Fatal("expected non-empty preview")
+	}
+}
+
 func TestMainModel_Update_PostDetailReplyShortcuts(t *testing.T) {
 	cfg := config.DefaultConfig()
 	m := NewMainModel(cfg)

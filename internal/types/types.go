@@ -45,6 +45,13 @@ type Community struct {
 	Scores      Score     `json:"scores"`
 }
 
+type Media struct {
+	ID   string `json:"id"`
+	Type string `json:"type"`
+	Name string `json:"name"`
+	Path string `json:"path"`
+}
+
 type Post struct {
 	ID            string       `json:"id"`
 	Title         string       `json:"title"`
@@ -53,6 +60,7 @@ type Post struct {
 	Author        UserMin      `json:"author"`
 	CommunityID   string       `json:"community_id"`
 	Community     CommunityMin `json:"community"`
+	Media         []Media      `json:"media,omitempty"`
 	Scores        Score        `json:"scores"`
 	Locked        bool         `json:"locked"`
 	Voted         bool         `json:"voted"`
