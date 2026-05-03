@@ -3,6 +3,7 @@ package views
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -246,7 +247,7 @@ func (m *PostDetailModel) render() {
 		m.Theme,
 		fmt.Sprintf("c/%s • u/%s • %s • p/%s", m.Post.Community.Name, m.Post.Author.Username, RelativeTime(m.Post.CreatedAt), m.Post.ID),
 		headerText,
-		"",
+		fmt.Sprintf("Posted %s", formatDetailTimestamp(m.Post.CreatedAt)),
 		fmt.Sprintf("↑↓ %d • 💬 %d • 💎 %d", m.Post.Scores.VoteScore, m.Post.Scores.CommentCount, m.Post.Scores.AwardCount),
 	) + "\n\n")
 
@@ -293,6 +294,16 @@ func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) st
 		scoreStyle.Render(fmt.Sprintf("↑↓ %d", c.Scores.VoteScore)),
 		scoreStyle.Render(RelativeTime(c.CreatedAt)))
 
+	detailParts := []string{formatDetailTimestamp(c.CreatedAt)}
+	if replies := len(c.Children); replies > 0 {
+		label := "replies"
+		if replies == 1 {
+			label = "reply"
+		}
+		detailParts = append(detailParts, fmt.Sprintf("%d %s", replies, label))
+	}
+	_, _ = fmt.Fprintf(&s, "%s %s\n", contentPrefix, scoreStyle.Render(strings.Join(detailParts, " • ")))
+
 	contentWidth := max(12, m.Width-lipgloss.Width(contentPrefix)-4)
 	wrapped := wrapCommentContent(c.Content, contentWidth)
 	for i, line := range wrapped {
@@ -304,6 +315,13 @@ func (m PostDetailModel) renderCommentItem(c commentWithDepth, selected bool) st
 	}
 
 	return withSelectionIndicator(s.String(), selected, m.Theme) + "\n\n"
+}
+
+func formatDetailTimestamp(t time.Time) string {
+	if t.IsZero() {
+		return "unknown time"
+	}
+	return t.Local().Format("2006-01-02 15:04")
 }
 
 func commentTreePrefixes(c commentWithDepth) (string, string) {

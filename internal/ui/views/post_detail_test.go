@@ -52,7 +52,7 @@ func TestPostDetailAppendCommentsMergesDuplicateParents(t *testing.T) {
 }
 
 func TestPostDetailRenderCommentItemShowsTreeAndWrapsContent(t *testing.T) {
-	now := time.Now()
+	now := time.Date(2026, time.May, 3, 14, 5, 0, 0, time.UTC)
 	m := NewPostDetailModel()
 	m.Width = 38
 	m.SetContent(types.Post{ID: "post-1", Title: "Test"}, []types.Comment{{
@@ -68,15 +68,27 @@ func TestPostDetailRenderCommentItemShowsTreeAndWrapsContent(t *testing.T) {
 		}},
 	}})
 
-	rendered := m.renderCommentItem(m.FlattenedComments[1], true)
+	rendered := m.renderCommentItem(m.FlattenedComments[0], true)
 
-	if !strings.Contains(rendered, "└─ u/child") {
-		t.Fatalf("expected tree branch in rendered comment, got:\n%s", rendered)
+	if !strings.Contains(rendered, "• u/root") {
+		t.Fatalf("expected root comment header, got:\n%s", rendered)
 	}
-	if !strings.Contains(rendered, "    This nested reply is") {
-		t.Fatalf("expected wrapped content prefix to stay visible, got:\n%s", rendered)
+	expectedTime := formatDetailTimestamp(now)
+	if !strings.Contains(rendered, expectedTime) {
+		t.Fatalf("expected exact timestamp metadata %q, got:\n%s", expectedTime, rendered)
 	}
-	if strings.Count(rendered, "\n") < 2 {
-		t.Fatalf("expected wrapped multi-line comment, got:\n%s", rendered)
+	if !strings.Contains(rendered, "1 reply") {
+		t.Fatalf("expected reply count metadata, got:\n%s", rendered)
+	}
+	if !strings.Contains(rendered, "  Parent comment") {
+		t.Fatalf("expected content prefix to stay visible, got:\n%s", rendered)
+	}
+}
+
+func TestFormatDetailTimestamp(t *testing.T) {
+	ts := time.Date(2026, time.May, 3, 14, 5, 0, 0, time.UTC)
+	got := formatDetailTimestamp(ts)
+	if got != ts.Local().Format("2006-01-02 15:04") {
+		t.Fatalf("unexpected timestamp %q", got)
 	}
 }

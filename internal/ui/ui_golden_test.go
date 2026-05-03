@@ -211,7 +211,7 @@ func TestGoldenPostDetailLargeContent(t *testing.T) {
 	m.SetTheme(main.Theme)
 	m.SetSize(72, 22)
 
-	now := time.Now()
+	now := time.Date(2026, time.May, 2, 18, 0, 0, 0, time.UTC)
 	post := types.Post{
 		ID:        "post-42",
 		Title:     "Shipping snapshot coverage without making the TUI miserable",
@@ -258,7 +258,7 @@ func TestGoldenPostDetailNarrow(t *testing.T) {
 	m.SetTheme(main.Theme)
 	m.SetSize(54, 18)
 
-	now := time.Now()
+	now := time.Date(2026, time.May, 2, 18, 0, 0, 0, time.UTC)
 	post := types.Post{
 		ID:        "post-7",
 		Title:     "Narrow layout should stay readable when metadata gets crowded",
